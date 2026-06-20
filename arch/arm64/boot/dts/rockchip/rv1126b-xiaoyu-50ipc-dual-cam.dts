@@ -36,6 +36,12 @@
 
 			csi_dphy3_input2: endpoint@2 {
 				reg = <2>;
+				remote-endpoint = <&gc8613_1_out>;
+				data-lanes = <1 2 3 4>;
+			};
+
+			csi_dphy3_input3: endpoint@3 {
+				reg = <3>;
 				remote-endpoint = <&imx415_1_out>;
 				data-lanes = <1 2 3 4>;
 			};
@@ -89,6 +95,35 @@
 		};
 	};
 
+	gc8613_1: gc8613_1@31 {
+		compatible = "galaxycore,gc8613";
+		reg = <0x31>;
+		clocks = <&cru CLK_MIPI1_OUT2IO>;
+		clock-names = "xvclk";
+
+		avdd-supply = <&vcc3v3_sys>;
+		dovdd-supply = <&vcc3v3_sys>;
+		dvdd-supply = <&vcc3v3_sys>;
+
+		reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio1 RK_PB7 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk1_pins>;
+
+		rockchip,camera-module-index = <1>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			gc8613_1_out: endpoint {
+				remote-endpoint = <&csi_dphy3_input2>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+
 	imx415_1: imx415_1@37 {
 		compatible = "sony,imx415";
 		reg = <0x37>;
@@ -112,7 +147,7 @@
 
 		port {
 			imx415_1_out: endpoint {
-				remote-endpoint = <&csi_dphy3_input2>;
+				remote-endpoint = <&csi_dphy3_input3>;
 				data-lanes = <1 2 3 4>;
 			};
 		};
