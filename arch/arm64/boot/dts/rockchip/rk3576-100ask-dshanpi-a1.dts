@@ -96,6 +96,7 @@
 			248 249 250 251 252 253 254 255
 		>;
 		default-brightness-level = <200>;
+		status = "disabled";
 	};
 
 	/delete-node/ chosen;
@@ -442,7 +443,7 @@
 
 /* IMX415-0 -> mipi1 */
 &csi2_dphy0 {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
@@ -474,7 +475,7 @@
 
 /* IMX415-1 -> mipi3 */
 &csi2_dphy3 {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
@@ -529,7 +530,7 @@
 	status = "okay";
 };
 
-&dp0_in_vp2 {
+&dp0_in_vp1 {
 	status = "okay";
 };
 
@@ -541,7 +542,7 @@
 	rockchip,lane-rate = <480>;
 
 	dsi_panel: panel@0 {
-		status = "okay";
+		status = "disabled";
 		compatible = "simple-panel-dsi";
 		power-supply = <&vcc_3v3_s0>;
 		reg = <0>;
@@ -661,22 +662,6 @@
 	};
 };
 
-&dsi_in_vopl {
-	status = "disabled";
-};
-
-&dsi_in_vp0 {
-	status = "disabled";
-};
-
-&dsi_in_vp1 {
-	status = "okay";
-};
-
-&dsi_in_vp2 {
-	status = "disabled";
-};
-
 &gmac0 {
 	/* Use rgmii-rxid mode to disable rx delay inside Soc */
 	clock_in_out = "output";
@@ -755,7 +740,7 @@
 		rockchip,camera-module-name = "CMK-OT2022-PX1";
 		rockchip,camera-module-lens-name = "IR0147-50IRC-8M-F20";
 
-		status = "okay";
+		status = "disabled";
 
 		port {
 			imx415_0_out: endpoint {
@@ -800,7 +785,7 @@
 		rockchip,camera-module-name = "CMK-OT2022-PX1";
 		rockchip,camera-module-lens-name = "IR0147-50IRC-8M-F20";
 
-		status = "okay";
+		status = "disabled";
 
 		port {
 			imx415_1_out: endpoint {
@@ -908,9 +893,16 @@
 		vbus-supply = <&vbus5v0_typec>;
 		status = "okay";
 
-		port {
-			usbc0_role_sw: endpoint {
-				remote-endpoint = <&usb_drd0_role_switch>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				usbc0_role_sw: endpoint@0 {
+					remote-endpoint = <&usb_drd0_role_switch>;
+				};
 			};
 		};
 
@@ -922,6 +914,7 @@
 			source-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)>;
 			mode-switch = <&dp>;
 
+			/* DP related config */
 			altmodes {
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -1021,7 +1014,7 @@
 
 /* mipi1 -> lvds1 */
 &mipi1_csi2 {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
@@ -1053,7 +1046,7 @@
 
 /* mipi3 -> lvds3 */
 &mipi3_csi2 {
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		#address-cells = <1>;
@@ -1162,7 +1155,7 @@
 
 /* backlight */
 &pwm0_2ch_0 {
-	status = "okay";
+	status = "disabled";
 	pinctrl-0 = <&pwm0m0_ch0>;
 };
 
@@ -1241,7 +1234,7 @@
 
 /* From IMX415-0 */
 &rkcif_mipi_lvds1 {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		rkcif_mipi_lvds1_in: endpoint {
@@ -1252,7 +1245,7 @@
 
 /* From IMX415-1 */
 &rkcif_mipi_lvds3 {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		rkcif_mipi_lvds3_in: endpoint {
@@ -1263,7 +1256,7 @@
 
 /* lvds1 -> isp_vir0 */
 &rkcif_mipi_lvds1_sditf {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		rkcif_mipi_lvds1_sditf_out: endpoint {
@@ -1274,7 +1267,7 @@
 
 /* lvds3 -> isp_vir1 */
 &rkcif_mipi_lvds3_sditf {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		rkcif_mipi_lvds3_sditf_out: endpoint {
@@ -1297,7 +1290,7 @@
 
 /* From IMX415-0 */
 &rkisp_vir0 {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		#address-cells = <1>;
@@ -1312,12 +1305,12 @@
 
 /* isp_vir0 -> vpss0 */
 &rkisp_vir0_sditf {
-	status = "okay";
+	status = "disabled";
 };
 
 /* From IMX415-1 */
 &rkisp_vir1 {
-	status = "okay";
+	status = "disabled";
 
 	port {
 		#address-cells = <1>;
@@ -1332,7 +1325,7 @@
 
 /* isp_vir1 -> vpss1 */
 &rkisp_vir1_sditf {
-	status = "okay";
+	status = "disabled";
 };
 
 &rknpu {
@@ -1373,21 +1366,21 @@
 };
 
 &rkvpss {
-	status = "okay";
+	status = "disabled";
 };
 
 &rkvpss_mmu {
-	status = "okay";
+	status = "disabled";
 };
 
 /* From imx415-0 */
 &rkvpss_vir0 {
-	status = "okay";
+	status = "disabled";
 };
 
 /* From imx415-1 */
 &rkvpss_vir1 {
-	status = "okay";
+	status = "disabled";
 };
 
 &rng {
@@ -1408,7 +1401,7 @@
 };
 
 &route_dsi {
-	status = "okay";
+	status = "disabled";
 };
 
 &route_hdmi {
