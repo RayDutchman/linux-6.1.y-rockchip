@@ -539,7 +539,6 @@
  */
 &dsi {
 	status = "disabled";
-	rockchip,lane-rate = <480>;
 
 	dsi_panel: panel@0 {
 		status = "disabled";
@@ -547,6 +546,8 @@
 		power-supply = <&vcc_3v3_s0>;
 		reg = <0>;
 		backlight = <&backlight>;
+
+		bpc = <8>;
 
 		prepare-delay-ms = <10>;
 		reset-delay-ms = <40>;
