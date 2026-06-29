@@ -296,6 +296,12 @@
 
 			csi_dphy_input3: endpoint@3 {
 				reg = <3>;
+				remote-endpoint = <&sc235hai_0_out>;
+				data-lanes = <1 2>;
+			};
+
+			csi_dphy_input4: endpoint@4 {
+				reg = <4>;
 				remote-endpoint = <&imx415_0_out>;
 				data-lanes = <1 2 3 4>;
 			};
@@ -624,10 +630,6 @@
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
 		clock-names = "xvclk";
 
-		avdd-supply = <&vcc3v3_sys>;
-		dovdd-supply = <&vcc3v3_sys>;
-		dvdd-supply = <&vcc3v3_sys>;
-
 		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
 		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
@@ -653,10 +655,6 @@
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
 		clock-names = "xvclk";
 
-		avdd-supply = <&vcc3v3_sys>;
-		dovdd-supply = <&vcc3v3_sys>;
-		dvdd-supply = <&vcc3v3_sys>;
-
 		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
 		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
@@ -676,15 +674,36 @@
 		};
 	};
 
+	sc235hai_0: sc235hai_0@30 {
+		compatible = "smartsens,sc235hai";
+		reg = <0x30>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			sc235hai_0_out: endpoint {
+				remote-endpoint = <&csi_dphy_input3>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+
 	imx415_0: imx415_0@37 {
 		compatible = "sony,imx415";
 		reg = <0x37>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
 		clock-names = "xvclk";
-
-		avdd-supply = <&vcc3v3_sys>;
-		dovdd-supply = <&vcc3v3_sys>;
-		dvdd-supply = <&vcc3v3_sys>;
 
 		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_LOW>;
 		power-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
@@ -699,7 +718,7 @@
 
 		port {
 			imx415_0_out: endpoint {
-				remote-endpoint = <&csi_dphy_input3>;
+				remote-endpoint = <&csi_dphy_input4>;
 				data-lanes = <1 2 3 4>;
 			};
 		};
