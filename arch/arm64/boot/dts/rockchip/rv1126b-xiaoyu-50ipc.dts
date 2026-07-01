@@ -12,7 +12,7 @@
 #include "rv1126b-aoa.dtsi"
 
 / {
-	model = "XIAOYU RV1126B IPC50";	
+	model = "XIAOYU RV1126B IPC50 V1.3";
 	compatible = "xiaoyu,rv1126b-ipc50", "rockchip,rv1126b";
 
 	aliases {
@@ -189,18 +189,6 @@
 		vin-supply = <&vcc3v3_sys>;
 	};
 
-	vcc1v8_lcd: regulator-vcc1v8-lcd {
-		compatible = "regulator-fixed";
-		enable-active-high;	
-		gpios = <&gpio5 RK_PA3 GPIO_ACTIVE_HIGH>;
-		regulator-always-on;
-		regulator-boot-on;
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		regulator-name = "vcc1v8_lcd";
-		vin-supply = <&vcc3v3_sys>;
-	};
-
 	vdd_npu: vdd-npu {
 		compatible = "pwm-regulator";
 		enable-gpios = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
@@ -338,9 +326,11 @@
 		width-mm = <62>;
 		height-mm = <103>;
 
-		reset-gpios  = <&gpio1 RK_PB5 GPIO_ACTIVE_LOW>;
+		/* 忽略enable-gpios、reset-gpios, 但相关引脚拉高，解决开机logo不显示的问题 */
+		//enable-gpios  = <&gpio5 RK_PA3 GPIO_ACTIVE_HIGH>;
+		//reset-gpios  = <&gpio1 RK_PB5 GPIO_ACTIVE_LOW>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&lcd_rst_l>;
+		pinctrl-0 = <&lcd_en_h>, <&lcd_rst_l>;
 
 		dsi,flags = <(MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_VIDEO_BURST | MIPI_DSI_MODE_LPM | MIPI_DSI_MODE_NO_EOT_PACKET)>;
 		dsi,format = <MIPI_DSI_FMT_RGB888>;
@@ -850,8 +840,12 @@
 	};
 
 	lcd {
+		lcd_en_h: lcd-en-h {
+			rockchip,pins = <5 RK_PA3 RK_FUNC_GPIO &pcfg_output_high>;
+		};
+
 		lcd_rst_l: lcd-rst-l {
-			rockchip,pins = <1 RK_PB5 RK_FUNC_GPIO &pcfg_pull_up>;
+			rockchip,pins = <1 RK_PB5 RK_FUNC_GPIO &pcfg_output_high>;
 		};
 	};
 
@@ -1051,6 +1045,7 @@
 	logo,uboot = "logo.bmp";
 	logo,kernel = "logo_kernel.bmp";
 	logo,mode = "center";
+	logo,rotate = <270>; //uboot logo 旋转角度: 0 90 180 270
 	charge_logo,mode = "center";
 	connect = <&vop_out_dsi>;
 };
