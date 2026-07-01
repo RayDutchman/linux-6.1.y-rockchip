@@ -621,15 +621,19 @@
 			native-mode = <&timing0>;
 
 			timing0: timing0 {
-				clock-frequency = <11760000>;
+				clock-frequency = <12144000>;
+
 				hactive = <480>;
 				vactive = <360>;
+
 				hfront-porch = <10>;
 				hsync-len = <5>;
 				hback-porch = <20>;
-				vfront-porch = <5>;
+
+				vfront-porch = <12>;
 				vsync-len = <5>;
-				vback-porch = <10>;
+				vback-porch = <16>;
+
 				hsync-active = <0>;
 				vsync-active = <0>;
 				de-active = <0>;
@@ -708,8 +712,14 @@
 };
 
 &hdmi {
-	cec-enable;
-	rockchip,sda-falling-delay-ns = <360>;
+	/* DDC I2C speed: 50khz */
+	//ddc-i2c-scl-high-time-ns = <9625>;
+	//ddc-i2c-scl-low-time-ns = <10000>;
+
+	/* DDC I2C speed: 100khz */
+	//ddc-i2c-scl-high-time-ns = <4812>;
+	//ddc-i2c-scl-low-time-ns = <5000>;
+
 	status = "okay";
 };
 
