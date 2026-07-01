@@ -530,7 +530,7 @@
 	status = "okay";
 };
 
-&dp0_in_vp1 {
+&dp0_in_vp0 {
 	status = "okay";
 };
 
@@ -723,7 +723,7 @@
 	status = "okay";
 };
 
-&hdmi_in_vp0 {
+&hdmi_in_vp1 {
 	status = "okay";
 };
 
@@ -904,16 +904,9 @@
 		vbus-supply = <&vbus5v0_typec>;
 		status = "okay";
 
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			port@0 {
-				reg = <0>;
-
-				usbc0_role_sw: endpoint@0 {
-					remote-endpoint = <&usb_drd0_role_switch>;
-				};
+		port {
+			usbc0_role_sw: endpoint {
+				remote-endpoint = <&usb_drd0_role_switch>;
 			};
 		};
 
@@ -1411,13 +1404,22 @@
 	rockchip,regulator-on-before-mem = <&vdd_npu_s0>;
 };
 
-&route_dsi {
-	status = "disabled";
+/* Max 4K@120Hz */
+&route_dp0 {
+	status = "okay";
+	connect = <&vp0_out_dp0>;
 };
 
+/* Max 1920x1080@60Hz */
+&route_dsi {
+	status = "disabled";
+	connect = <&vp2_out_dsi>;
+};
+
+/* Max 2560x1600@60Hz */
 &route_hdmi {
 	status = "okay";
-	connect = <&vp0_out_hdmi>;
+	connect = <&vp1_out_hdmi>;
 };
 
 /* es8388 */
@@ -1512,6 +1514,7 @@
 	status = "okay";
 };
 
+/* dp0 sound */
 &spdif_tx3 {
 	status = "okay";
 };
@@ -1588,7 +1591,6 @@
 &usb_drd0_dwc3 {
 	dr_mode = "otg";
 	usb-role-switch;
-	extcon = <&u2phy0>;
 	status = "okay";
 
 	port {
