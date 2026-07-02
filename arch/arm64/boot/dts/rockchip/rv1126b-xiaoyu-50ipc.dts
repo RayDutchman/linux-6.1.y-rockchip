@@ -649,7 +649,7 @@
 	pinctrl-0 = <&i2c3m1_pins>;
 	status = "okay";
 
-	sc235hai_0: sc235hai_0@30 {
+	sc235hai_0: sc235hai-0@30 {
 		compatible = "smartsens,sc235hai";
 		reg = <0x30>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -672,7 +672,7 @@
 		};
 	};
 
-	sc450ai_0: sc450ai_0@30 {
+	sc450ai_0: sc450ai-0@30 {
 		compatible = "smartsens,sc450ai";
 		reg = <0x30>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -695,7 +695,7 @@
 		};
 	};
 
-	sc530ai_0: sc530ai_0@32 {
+	sc530ai_0: sc530ai-0@32 {
 		compatible = "smartsens,sc530ai";
 		reg = <0x32>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -718,7 +718,7 @@
 		};
 	};
 
-	imx415_0: imx415_0@37 {
+	imx415_0: imx415-0@37 {
 		compatible = "sony,imx415";
 		reg = <0x37>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -741,7 +741,7 @@
 		};
 	};
 
-	gc2093_0: gc2093_0@7e {
+	gc2093_0: gc2093-0@7e {
 		compatible = "galaxycore,gc2093";
 		reg = <0x7e>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -764,7 +764,7 @@
 		};
 	};
 
-	gc8613_0: gc8613_0@31 {
+	gc8613_0: gc8613-0@31 {
 		compatible = "galaxycore,gc8613";
 		reg = <0x31>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -788,7 +788,7 @@
 	};
 
 	/*
-	imx586_0: imx586_0@1a {
+	imx586_0: imx586-0@1a {
 		compatible = "sony,imx586";
 		reg = <0x1a>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -813,7 +813,7 @@
 	*/
 
 	/*
-	sc850sl_0: sc850sl_0@30 {
+	sc850sl_0: sc850sl-0@30 {
 		compatible = "smartsens,sc850sl";
 		reg = <0x30>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
@@ -838,7 +838,7 @@
 	*/
 
 	/*
-	sc635hai_0: sc635hai_0@30 {
+	sc635hai_0: sc635hai-0@30 {
 		compatible = "smartsens,sc635hai";
 		reg = <0x30>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
