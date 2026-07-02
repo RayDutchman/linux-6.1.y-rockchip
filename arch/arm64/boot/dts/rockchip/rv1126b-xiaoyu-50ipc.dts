@@ -270,29 +270,65 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			csi_dphy_input1: endpoint@1 {
+			csi2_dphy0_in1: endpoint@1 {
 				reg = <1>;
-				remote-endpoint = <&sc450ai_0_out>;
-				data-lanes = <1 2>;
-			};
-
-			csi_dphy_input2: endpoint@2 {
-				reg = <2>;
-				remote-endpoint = <&gc8613_0_out>;
-				data-lanes = <1 2 3 4>;
-			};
-
-			csi_dphy_input3: endpoint@3 {
-				reg = <3>;
 				remote-endpoint = <&sc235hai_0_out>;
 				data-lanes = <1 2>;
 			};
 
-			csi_dphy_input4: endpoint@4 {
+			csi2_dphy0_in2: endpoint@2 {
+				reg = <2>;
+				remote-endpoint = <&sc450ai_0_out>;
+				data-lanes = <1 2>;
+			};
+
+			csi2_dphy0_in3: endpoint@3 {
+				reg = <3>;
+				remote-endpoint = <&sc530ai_0_out>;
+				data-lanes = <1 2 3 4>;
+			};
+
+			csi2_dphy0_in4: endpoint@4 {
 				reg = <4>;
 				remote-endpoint = <&imx415_0_out>;
 				data-lanes = <1 2 3 4>;
 			};
+
+			csi2_dphy0_in5: endpoint@5 {
+				reg = <5>;
+				remote-endpoint = <&gc2093_0_out>;
+				data-lanes = <1 2>;
+			};
+
+			csi2_dphy0_in6: endpoint@6 {
+				reg = <6>;
+				remote-endpoint = <&gc8613_0_out>;
+				data-lanes = <1 2 3 4>;
+			};
+
+			/*
+			csi2_dphy0_in7: endpoint@7 {
+				reg = <7>;
+				remote-endpoint = <&imx586_0_out>;
+				data-lanes = <1 2 3 4>;
+			};
+			*/
+
+			/*
+			csi2_dphy0_in8: endpoint@8 {
+				reg = <8>;
+				remote-endpoint = <&sc850sl_0_out>;
+				data-lanes = <1 2 3 4>;
+			};
+			*/
+
+			/*
+			csi2_dphy0_in9: endpoint@9 {
+				reg = <9>;
+				remote-endpoint = <&sc635ai_0_out>;
+				data-lanes = <1 2 3 4>;
+			};
+			*/
 		};
 
 		port@1 {
@@ -300,9 +336,9 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			csidphy0_out: endpoint@0 {
+			csi2_dphy0_out: endpoint@0 {
 				reg = <0>;
-				remote-endpoint = <&mipi0_csi2_input>;
+				remote-endpoint = <&mipi0_csi2_in>;
 			};
 		};
 	};
@@ -610,30 +646,119 @@
 
 /* sensor0 */
 &i2c3 {
-	clock-frequency = <400000>;
 	pinctrl-0 = <&i2c3m1_pins>;
 	status = "okay";
+
+	sc235hai_0: sc235hai_0@30 {
+		compatible = "smartsens,sc235hai";
+		reg = <0x30>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			sc235hai_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in1>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
 
 	sc450ai_0: sc450ai_0@30 {
 		compatible = "smartsens,sc450ai";
 		reg = <0x30>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
 		clock-names = "xvclk";
-
 		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
 		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&cam_clk0_pins>;
-
 		rockchip,camera-module-index = <0>;
 		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "CRK4F4209";
-		rockchip,camera-module-lens-name = "styleTstP0";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
 		status = "okay";
 
 		port {
 			sc450ai_0_out: endpoint {
-				remote-endpoint = <&csi_dphy_input1>;
+				remote-endpoint = <&csi2_dphy0_in2>;
+				data-lanes = <1 2>;
+			};
+		};
+	};
+
+	sc530ai_0: sc530ai_0@32 {
+		compatible = "smartsens,sc530ai";
+		reg = <0x32>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			sc530ai_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in3>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+
+	imx415_0: imx415_0@37 {
+		compatible = "sony,imx415";
+		reg = <0x37>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_LOW>;
+		power-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			imx415_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in4>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+
+	gc2093_0: gc2093_0@7e {
+		compatible = "galaxycore,gc2093";
+		reg = <0x7e>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			gc2093_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in5>;
 				data-lanes = <1 2>;
 			};
 		};
@@ -644,12 +769,10 @@
 		reg = <0x31>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
 		clock-names = "xvclk";
-
 		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
-		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&cam_clk0_pins>;
-
 		rockchip,camera-module-index = <0>;
 		rockchip,camera-module-facing = "back";
 		rockchip,camera-module-name = "xiaoyu";
@@ -658,48 +781,22 @@
 
 		port {
 			gc8613_0_out: endpoint {
-				remote-endpoint = <&csi_dphy_input2>;
+				remote-endpoint = <&csi2_dphy0_in6>;
 				data-lanes = <1 2 3 4>;
 			};
 		};
 	};
 
-	sc235hai_0: sc235hai_0@30 {
-		compatible = "smartsens,sc235hai";
-		reg = <0x30>;
+	/*
+	imx586_0: imx586_0@1a {
+		compatible = "sony,imx586";
+		reg = <0x1a>;
 		clocks = <&cru CLK_MIPI0_OUT2IO>;
 		clock-names = "xvclk";
-
-		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
-		pwdn-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&cam_clk0_pins>;
-
-		rockchip,camera-module-index = <0>;
-		rockchip,camera-module-facing = "back";
-		rockchip,camera-module-name = "xiaoyu";
-		rockchip,camera-module-lens-name = "50ipc";
-		status = "okay";
-
-		port {
-			sc235hai_0_out: endpoint {
-				remote-endpoint = <&csi_dphy_input3>;
-				data-lanes = <1 2>;
-			};
-		};
-	};
-
-	imx415_0: imx415_0@37 {
-		compatible = "sony,imx415";
-		reg = <0x37>;
-		clocks = <&cru CLK_MIPI0_OUT2IO>;
-		clock-names = "xvclk";
-
 		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_LOW>;
 		power-gpios = <&gpio1 RK_PB6 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&cam_clk0_pins>;
-
 		rockchip,camera-module-index = <0>;
 		rockchip,camera-module-facing = "back";
 		rockchip,camera-module-name = "xiaoyu";
@@ -707,12 +804,63 @@
 		status = "okay";
 
 		port {
-			imx415_0_out: endpoint {
-				remote-endpoint = <&csi_dphy_input4>;
+			imx586_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in7>;
 				data-lanes = <1 2 3 4>;
 			};
 		};
 	};
+	*/
+
+	/*
+	sc850sl_0: sc850sl_0@30 {
+		compatible = "smartsens,sc850sl";
+		reg = <0x30>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			sc850sl_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in8>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+	*/
+
+	/*
+	sc635hai_0: sc635hai_0@30 {
+		compatible = "smartsens,sc635hai";
+		reg = <0x30>;
+		clocks = <&cru CLK_MIPI0_OUT2IO>;
+		clock-names = "xvclk";
+		reset-gpios = <&gpio4 RK_PA0 GPIO_ACTIVE_HIGH>;
+		pwdn-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&cam_clk0_pins>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "xiaoyu";
+		rockchip,camera-module-lens-name = "50ipc";
+		status = "okay";
+
+		port {
+			sc635hai_0_out: endpoint {
+				remote-endpoint = <&csi2_dphy0_in9>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+	*/
 };
 
 &i2c5 {
@@ -767,9 +915,9 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			mipi0_csi2_input: endpoint@1 {
+			mipi0_csi2_in: endpoint@1 {
 				reg = <1>;
-				remote-endpoint = <&csidphy0_out>;
+				remote-endpoint = <&csi2_dphy0_out>;
 			};
 		};
 
@@ -778,9 +926,9 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
-			mipi0_csi2_output: endpoint@0 {
+			mipi0_csi2_out: endpoint@0 {
 				reg = <0>;
-				remote-endpoint = <&cif_mipi_in0>;
+				remote-endpoint = <&rkcif_mipi_lvds_in>;
 			};
 		};
 	};
@@ -924,8 +1072,8 @@
 	status = "okay";
 
 	port {
-		cif_mipi_in0: endpoint {
-			remote-endpoint = <&mipi0_csi2_output>;
+		rkcif_mipi_lvds_in: endpoint {
+			remote-endpoint = <&mipi0_csi2_out>;
 		};
 	};
 };
@@ -934,8 +1082,8 @@
 	status = "okay";
 
 	port {
-		mipi_lvds_sditf: endpoint {
-			remote-endpoint = <&isp_vir0>;
+		rkcif_mipi_lvds_sditf_out: endpoint {
+			remote-endpoint = <&isp_vir0_in>;
 		};
 	};
 };
@@ -971,9 +1119,9 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		isp_vir0: endpoint@0 {
+		isp_vir0_in: endpoint@0 {
 			reg = <0>;
-			remote-endpoint = <&mipi_lvds_sditf>;
+			remote-endpoint = <&rkcif_mipi_lvds_sditf_out>;
 		};
 	};
 };
