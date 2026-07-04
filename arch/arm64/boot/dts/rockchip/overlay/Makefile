@@ -106,6 +106,7 @@ dtbo-$(CONFIG_ARCH_ROCKCHIP) += \
 	rk3576-dshanpi-a1-csi1-imx415.dtbo \
 	rk3576-dshanpi-a1-csi3-imx415.dtbo \
 	rk3576-dshanpi-a1-dsi480x360-touch.dtbo \
+	rk3576-dshanpi-a1-dsi1024x768-touch.dtbo \
 	rk3576-i2c0-m1.dtbo \
 	rk3576-i2c1-m0.dtbo \
 	rk3576-i2c2-m0.dtbo \
