@@ -895,6 +895,7 @@ struct rwnx_hw {
 	char wext_essid[33];
 	int support_freqs[SCAN_CHANNEL_MAX];
 	int support_freqs_number;
+#endif
 #ifdef CONFIG_DYNAMIC_PWR
 	struct timer_list pwrloss_timer;
 	struct work_struct pwrloss_work;
@@ -906,7 +907,6 @@ struct rwnx_hw {
 	struct timer_list tc_timer;
 	struct work_struct tc_work;
 	s8 tc_range;
-#endif
 #endif
 #ifdef CONFIG_BAND_STEERING
 	u8_l iface_idx;

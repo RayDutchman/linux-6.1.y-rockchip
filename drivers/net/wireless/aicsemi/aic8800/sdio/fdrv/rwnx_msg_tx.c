@@ -525,7 +525,7 @@ int rwnx_send_add_if (struct rwnx_hw *rwnx_hw, const unsigned char *mac,
 	//case NL80211_IFTYPE_P2P_DEVICE:
 	case NL80211_IFTYPE_P2P_CLIENT:
 		add_if_req_param->p2p = true;
-		fallthrough;
+		// no break
 	#endif /* CONFIG_RWNX_FULLMAC */
 	case NL80211_IFTYPE_STATION:
 		add_if_req_param->type = MM_STA;
@@ -538,7 +538,7 @@ int rwnx_send_add_if (struct rwnx_hw *rwnx_hw, const unsigned char *mac,
 	#ifdef CONFIG_RWNX_FULLMAC
 	case NL80211_IFTYPE_P2P_GO:
 		add_if_req_param->p2p = true;
-		fallthrough;
+		// no break
 	#endif /* CONFIG_RWNX_FULLMAC */
 	case NL80211_IFTYPE_AP:
 		add_if_req_param->type = MM_AP;
@@ -1138,7 +1138,8 @@ int rwnx_send_rf_calib_req(struct rwnx_hw *rwnx_hw, struct mm_set_rf_calib_cfm *
 	    } else if (rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 || rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) {
 	    	rf_calib_req->cal_cfg_24g = 0x0f8f;
 	    	rf_calib_req->cal_cfg_5g = 0x0f0f;
-	    }else if(rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+	    }else if(rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+			rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 	        rf_calib_req->cal_cfg_24g = 0x0f8f;
 	        rf_calib_req->cal_cfg_5g = 0x0f0f;
 	    }
@@ -1308,6 +1309,7 @@ int rwnx_send_rf_calib_req(struct rwnx_hw *rwnx_hw, struct mm_set_rf_calib_cfm *
 	        rf_calib_req->cal_cfg_5g = 0;
 	    } else if (rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 			rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+			rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 			rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) {
 	    	rf_calib_req->cal_cfg_24g = 0x0f8f;
 	    	rf_calib_req->cal_cfg_5g = 0x0f0f;
@@ -2714,6 +2716,7 @@ int rwnx_send_txpwr_ofst2x_req(struct rwnx_hw *rwnx_hw)
     }
     if (rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2){
         get_userconfig_txpwr_ofst2x_in_fdrv(txpwr_ofst2x);
     }
@@ -2977,6 +2980,7 @@ int rwnx_send_me_config_req(struct rwnx_hw *rwnx_hw)
 
     if (rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) {
         rwnx_hw->mod_params->use_80 = true;
     }

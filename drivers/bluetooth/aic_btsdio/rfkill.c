@@ -29,9 +29,9 @@ static int bluetooth_set_power(void *data, bool blocked)
 {
 	pr_info("%s: start_block=%d\n", __func__, blocked);
 	if (!blocked) {
-		aicbsp_set_subsys(AIC_BLUETOOTH, AIC_PWR_ON);
+		aicwf_sdio_aicbsp_set_subsys(AIC_BLUETOOTH, AIC_PWR_ON);
 	} else {
-		aicbsp_set_subsys(AIC_BLUETOOTH, AIC_PWR_OFF);
+		aicwf_sdio_aicbsp_set_subsys(AIC_BLUETOOTH, AIC_PWR_OFF);
 	}
 
 	pr_info("%s: end_block=%d\n", __func__, blocked);

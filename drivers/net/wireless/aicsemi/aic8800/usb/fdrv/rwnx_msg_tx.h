@@ -199,11 +199,14 @@ int rwnx_send_dummy_reboot(struct rwnx_hw *rwnx_hw);
 #ifdef CONFIG_DYNAMIC_PERPWR
 int rwnx_send_txpwr_per_sta_req(struct rwnx_hw *rwnx_hw, struct rwnx_sta *sta);
 #endif
-
+int rwnx_send_get_temp_req(struct rwnx_hw *rwnx_hw, s8_l *temp);
 
 //#ifdef CONFIG_USB_BT
 int rwnx_send_reboot(struct rwnx_hw *rwnx_hw);
 //#endif // CONFIG_USB_BT
-
+struct rwnx_cmd *rwnx_cmd_malloc(void);
+void rwnx_cmd_free(struct rwnx_cmd *cmd);
+int rwnx_init_cmd_array(void);
+void rwnx_free_cmd_array(void);
 
 #endif /* _RWNX_MSG_TX_H_ */

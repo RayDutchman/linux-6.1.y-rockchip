@@ -53,8 +53,16 @@ typedef struct {
      USER_SETCH_LOFT_CALIB_EN_FLAG)
 
 #define CFG_USER_PWROFST_COVER_CALIB_EN     (1)
-#define CFG_USER_CHAN_MAX_TXPWR_EN          (defined(CONFIG_POWER_LIMIT))
-#define CFG_USER_APM_PRBRSP_OFFLOAD_DISABLE (defined(CONFIG_PRBREQ_REPORT))
+#if (defined(CONFIG_POWER_LIMIT))
+#define CFG_USER_CHAN_MAX_TXPWR_EN          (1)
+#else
+#define CFG_USER_CHAN_MAX_TXPWR_EN          (0)
+#endif
+#if (defined(CONFIG_PRBREQ_REPORT))
+#define CFG_USER_APM_PRBRSP_OFFLOAD_DISABLE (1)
+#else
+#define CFG_USER_APM_PRBRSP_OFFLOAD_DISABLE (0)
+#endif
 #define CFG_USER_HE_MU_EDCA_UPDATE_DISABLE  (0)
 #define CFG_USER_RF_WITH_SAW_EN             (0)
 #define CFG_USER_SETCH_LOFT_CALIB_EN        (1)
@@ -306,49 +314,80 @@ int rwnx_plat_userconfig_load_8800d80x2(struct aic_usb_dev *usb_dev){
 }
 #endif
 int system_config_8800d80x2(struct aic_usb_dev *usb_dev){
-		int syscfg_num;
-		int ret, cnt;
-		const u32 mem_addr = 0x40500000;
-		const u32 mem_addr2 = 0x40500004;
-		struct dbg_mem_read_cfm rd_mem_addr_cfm;
-		ret = rwnx_send_dbg_mem_read_req(usb_dev, mem_addr, &rd_mem_addr_cfm);
-		if (ret) {
-			printk("%x rd fail: %d\n", mem_addr, ret);
-			return ret;
-		}
-		chip_id = rd_mem_addr_cfm.memdata >> 16;
+    int syscfg_num;
+    int ret, cnt;
+    const u32 mem_addr = 0x40500000;
+    const u32 mem_addr2 = 0x40500004;
+    const u32 mem_addr3 = 0x40800000;
+    const u32 mem_mask3 = (0x03UL << 24) | (0x01UL << 6) | (0x01UL << 1);
+    const u32 mem_data3 = (0x02UL << 24) | (0x01UL << 6);
+    const u32 mem_addr4 = 0x40800014;
+    const u32 mem_data4 = 0x00000820;
+    struct dbg_mem_read_cfm rd_mem_addr_cfm;
 
-		ret = rwnx_send_dbg_mem_read_req(usb_dev, mem_addr2, &rd_mem_addr_cfm);
-		if (ret) {
-			printk("%x rd fail: %d\n", mem_addr2, ret);
-			return ret;
-		}
-		if (((rd_mem_addr_cfm.memdata >> 17) & 0x01UL) == 0x00UL) {
-			chip_mcu_id = 1;
-		}
+    /* fix usb2.0 rx_err */
+    ret = rwnx_send_dbg_mem_mask_write_req(usb_dev, mem_addr3, mem_mask3, mem_data3);
+    if (ret) {
+        printk("%x mask write fail: %d\n", mem_addr3, ret);
+        return ret;
+    }
+    ret = rwnx_send_dbg_mem_write_req(usb_dev, mem_addr4, mem_data4);
+    if (ret) {
+        printk("%x write fail: %d\n", mem_addr4, ret);
+        return ret;
+    }
+    ret = rwnx_send_dbg_mem_read_req(usb_dev, mem_addr3, &rd_mem_addr_cfm);
+    if (ret) {
+        printk("%x rd fail: %d\n", mem_addr3, ret);
+        return ret;
+    } else {
+        printk("[%08x]=%08x\n", rd_mem_addr_cfm.memaddr, rd_mem_addr_cfm.memdata);
+    }
+    ret = rwnx_send_dbg_mem_read_req(usb_dev, mem_addr4, &rd_mem_addr_cfm);
+    if (ret) {
+        printk("%x rd fail: %d\n", mem_addr4, ret);
+        return ret;
+    } else {
+        printk("[%08x]=%08x\n", rd_mem_addr_cfm.memaddr, rd_mem_addr_cfm.memdata);
+    }
 
-		printk("chip_id=%x, chip_mcu_id = %d\n", chip_id, chip_mcu_id);
-	#if 1
-		syscfg_num = sizeof(syscfg_tbl_8800d80x2) / sizeof(u32) / 2;
-		for (cnt = 0; cnt < syscfg_num; cnt++) {
-			ret = rwnx_send_dbg_mem_write_req(usb_dev, syscfg_tbl_8800d80x2[cnt][0], syscfg_tbl_8800d80x2[cnt][1]);
-			if (ret) {
-				printk("%x write fail: %d\n", syscfg_tbl_8800d80x2[cnt][0], ret);
-				return ret;
-			}
-		}
-		syscfg_num = sizeof(syscfg_tbl_masked_8800d80x2) / sizeof(u32) / 3;
-		for (cnt = 0; cnt < syscfg_num; cnt++) {
-			ret = rwnx_send_dbg_mem_mask_write_req(usb_dev,
-				syscfg_tbl_masked_8800d80x2[cnt][0], syscfg_tbl_masked_8800d80x2[cnt][1], syscfg_tbl_masked_8800d80x2[cnt][2]);
-			if (ret) {
-				printk("%x mask write fail: %d\n", syscfg_tbl_masked_8800d80x2[cnt][0], ret);
-				return ret;
-			}
-		}
-	#endif
+    ret = rwnx_send_dbg_mem_read_req(usb_dev, mem_addr, &rd_mem_addr_cfm);
+    if (ret) {
+        printk("%x rd fail: %d\n", mem_addr, ret);
+        return ret;
+    }
+    chip_id = rd_mem_addr_cfm.memdata >> 16;
 
-	return 0;
+    ret = rwnx_send_dbg_mem_read_req(usb_dev, mem_addr2, &rd_mem_addr_cfm);
+    if (ret) {
+        printk("%x rd fail: %d\n", mem_addr2, ret);
+        return ret;
+    }
+    if (((rd_mem_addr_cfm.memdata >> 17) & 0x01UL) == 0x00UL) {
+        chip_mcu_id = 1;
+    }
+
+    printk("chip_id=%x, chip_mcu_id = %d\n", chip_id, chip_mcu_id);
+
+    syscfg_num = sizeof(syscfg_tbl_8800d80x2) / sizeof(u32) / 2;
+    for (cnt = 0; cnt < syscfg_num; cnt++) {
+        ret = rwnx_send_dbg_mem_write_req(usb_dev, syscfg_tbl_8800d80x2[cnt][0], syscfg_tbl_8800d80x2[cnt][1]);
+        if (ret) {
+            printk("%x write fail: %d\n", syscfg_tbl_8800d80x2[cnt][0], ret);
+            return ret;
+        }
+    }
+    syscfg_num = sizeof(syscfg_tbl_masked_8800d80x2) / sizeof(u32) / 3;
+    for (cnt = 0; cnt < syscfg_num; cnt++) {
+        ret = rwnx_send_dbg_mem_mask_write_req(usb_dev,
+            syscfg_tbl_masked_8800d80x2[cnt][0], syscfg_tbl_masked_8800d80x2[cnt][1], syscfg_tbl_masked_8800d80x2[cnt][2]);
+        if (ret) {
+            printk("%x mask write fail: %d\n", syscfg_tbl_masked_8800d80x2[cnt][0], ret);
+            return ret;
+        }
+    }
+
+    return 0;
 }
 
 

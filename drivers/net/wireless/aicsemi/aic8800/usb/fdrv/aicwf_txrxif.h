@@ -307,6 +307,7 @@ void aicwf_rxframe_queue_init_2(struct rx_frame_queue *pq, int max_len);
 void rxbuff_free(struct rx_buff *rxbuff);
 struct rx_buff *rxbuff_dequeue(struct rx_frame_queue *pq);
 bool aicwf_rxbuff_enqueue(struct device *dev, struct rx_frame_queue *rxq, struct rx_buff *pkt);
+struct rx_buff *rxbuff_queue_penq(struct rx_frame_queue *pq, struct rx_buff *p);
 extern struct aicwf_rx_buff_list aic_rx_buff_list;
 #endif
 

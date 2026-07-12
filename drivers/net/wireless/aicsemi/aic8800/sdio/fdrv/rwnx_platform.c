@@ -1018,7 +1018,8 @@ s8_l get_txpwr_max(s8_l power)
 		}
 	}
 	else if (g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
-		g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+		g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		for (i = 0; i <= 11; i++){
 			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11b_11ag_2g4[i])
 				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11b_11ag_2g4[i];
@@ -1068,7 +1069,7 @@ s8_l get_txpwr_max(s8_l power)
 	    }
 	}
 
-	//printk("%s:txpwr_max:%d \r\n",__func__,power);
+	printk("%s:txpwr_max:%d \r\n",__func__,power);
 	return power;
 }
 
@@ -1077,7 +1078,8 @@ void set_txpwr_loss_ofst(s8_l value)
 {
 	int i=0;
 	if (g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
-		g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+		g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		g_rwnx_plat->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		for (i = 0; i <= 11; i++){
 			userconfig_info.txpwr_lvl_v3.pwrlvl_11b_11ag_2g4[i] += value;
 		}
@@ -3270,7 +3272,8 @@ static int rwnx_plat_userconfig_load(struct rwnx_hw *rwnx_hw) {
 #ifdef CONFIG_POWER_LIMIT
 		rwnx_plat_powerlimit_load_8800d80(rwnx_hw);
 #endif
-	}else if(rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+	}else if(rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		rwnx_plat_userconfig_load_8800d80n(rwnx_hw);
 #ifdef CONFIG_POWER_LIMIT
 		rwnx_plat_powerlimit_load_8800d80n(rwnx_hw);

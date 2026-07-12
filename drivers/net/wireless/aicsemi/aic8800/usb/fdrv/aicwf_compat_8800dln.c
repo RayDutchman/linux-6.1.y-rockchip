@@ -2,6 +2,7 @@
 #include "rwnx_msg_tx.h"
 #include "reg_access.h"
 #include "rwnx_platform.h"
+#include "aicwf_compat_8800dln.h"
 
 #define FW_USERCONFIG_NAME_8800DLN          "aic_userconfig_8800dln.txt"
 #define FW_POWERLIMIT_NAME_8800DLN          "aic_powerlimit_8800dln.txt"
@@ -318,7 +319,7 @@ int rwnx_plat_powerlimit_load_8800dln(struct rwnx_hw *rwnx_hw)
     AICWFDBG(LOGINFO, "### Load file done: %s, size=%d\n", filename, size);
 
     /* parsing the file */
-    rwnx_plat_powerlimit_parsing((char *)dst, size, country_code);
+    rwnx_plat_powerlimit_parsing((char *)dst, size);
 
     rwnx_release_firmware_common(&dst);
 

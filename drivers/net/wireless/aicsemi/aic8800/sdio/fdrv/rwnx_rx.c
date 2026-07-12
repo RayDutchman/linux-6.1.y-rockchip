@@ -379,7 +379,7 @@ void rwnx_rx_data_skb_resend(struct rwnx_hw *rwnx_hw, struct rwnx_vif *rwnx_vif,
 		netdev_err(rwnx_vif->ndev, "Failed to copy skb");
 	}
 }
-
+#if 0
 static void rwnx_rx_data_skb_forward(struct rwnx_hw *rwnx_hw, struct rwnx_vif *rwnx_vif,
 							 struct sk_buff *skb,  struct hw_rxhdr *rxhdr)
 {
@@ -456,7 +456,95 @@ static void rwnx_rx_data_skb_forward(struct rwnx_hw *rwnx_hw, struct rwnx_vif *r
 
 	rwnx_hw->stats.last_rx = jiffies;
 }
+#else//zsj--fix amsdu packet forward
+static void rwnx_rx_data_skb_forward(struct rwnx_hw *rwnx_hw, struct rwnx_vif *rwnx_vif,
+                                    struct sk_buff *skb, struct hw_rxhdr *rxhdr)
+{
+    struct sk_buff_head list;  
+    struct sk_buff *cur_skb;   
 
+    __skb_queue_head_init(&list);
+
+#ifdef CONFIG_BR_SUPPORT
+    void *br_port = NULL;
+    if (1) {  
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 35))
+        br_port = rwnx_vif->ndev->br_port;
+#else
+        rcu_read_lock();
+        br_port = rcu_dereference(rwnx_vif->ndev->rx_handler_data);
+        rcu_read_unlock();
+#endif
+        if (br_port) {
+            int nat25_handle_frame(struct rwnx_vif *vif, struct sk_buff *skb);
+            
+            if (nat25_handle_frame(rwnx_vif, skb) == -1) {
+                dev_kfree_skb(skb);
+                return;
+            }
+        }
+    }
+#endif /* CONFIG_BR_SUPPORT */
+
+    if (rxhdr->flags_is_amsdu) {//zsj-add
+        AICWFDBG(LOGERROR, "%s: pkt is amsdu process first \n", __func__);
+        rwnx_rxdata_process_amsdu(rwnx_vif->rwnx_hw, skb, rwnx_vif->vif_index, &list);
+    } else {
+        __skb_queue_head(&list, skb);
+    }
+
+    while (!skb_queue_empty(&list)) {
+        cur_skb = __skb_dequeue(&list);
+
+        cur_skb->dev = rwnx_vif->ndev;
+        skb_reset_mac_header(cur_skb);//zsj
+
+        rwnx_vif->net_stats.rx_packets++;
+        rwnx_vif->net_stats.rx_bytes += cur_skb->len;
+
+        cur_skb->protocol = eth_type_trans(cur_skb, rwnx_vif->ndev);
+
+        memset(cur_skb->cb, 0, sizeof(cur_skb->cb));
+
+        REG_SW_SET_PROFILING(rwnx_hw, SW_PROF_IEEE80211RX);
+
+#ifdef CONFIG_FILTER_TCP_ACK
+        filter_rx_tcp_ack(rwnx_hw, cur_skb->data, cpu_to_le16(cur_skb->len));
+#endif
+
+#ifdef AICWF_ARP_OFFLOAD
+        if (RWNX_VIF_TYPE(rwnx_vif) == NL80211_IFTYPE_STATION || 
+            RWNX_VIF_TYPE(rwnx_vif) == NL80211_IFTYPE_P2P_CLIENT) {
+            arpoffload_proc(cur_skb, rwnx_vif);
+        }
+#endif
+
+#ifdef CONFIG_RX_NETIF_RECV_SKB
+        local_bh_disable();
+        netif_receive_skb(cur_skb);
+        local_bh_enable();
+#else
+        if (in_interrupt()) {
+            netif_rx(cur_skb);
+        } else {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
+            netif_rx_ni(cur_skb);
+#else
+            ulong flags;
+            netif_rx(cur_skb);
+            local_irq_save(flags);
+            RAISE_RX_SOFTIRQ();
+            local_irq_restore(flags);
+#endif
+        }
+#endif /* CONFIG_RX_NETIF_RECV_SKB */
+
+        REG_SW_CLEAR_PROFILING(rwnx_hw, SW_PROF_IEEE80211RX);
+    }
+
+    rwnx_hw->stats.last_rx = jiffies;
+}
+#endif 
 
 static bool rwnx_rx_data_skb(struct rwnx_hw *rwnx_hw, struct rwnx_vif *rwnx_vif,
 							 struct sk_buff *skb,  struct hw_rxhdr *rxhdr)

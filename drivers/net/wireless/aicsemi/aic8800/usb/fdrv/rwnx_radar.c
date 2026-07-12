@@ -218,33 +218,6 @@ static const struct radar_types *dfs_domains[] = {
     &jp_radar_types,
 };
 
-
-/**
- * struct pri_sequence - sequence of pulses matching one PRI
- * @head: list_head
- * @pri: pulse repetition interval (PRI) in usecs
- * @dur: duration of sequence in usecs
- * @count: number of pulses in this sequence
- * @count_falses: number of not matching pulses in this sequence
- * @first_ts: time stamp of first pulse in usecs
- * @last_ts: time stamp of last pulse in usecs
- * @deadline_ts: deadline when this sequence becomes invalid (first_ts + dur)
- * @ppb_thresh: Number of pulses to validate detection
- *              (need for weather radar whose value depends of pri)
- */
-struct pri_sequence {
-    struct list_head head;
-    u32 pri;
-    u32 dur;
-    u32 count;
-    u32 count_falses;
-    u64 first_ts;
-    u64 last_ts;
-    u64 deadline_ts;
-    u8 ppb_thresh;
-};
-
-
 /**
  * struct pulse_elem - elements in pulse queue
  * @ts: time stamp in usecs

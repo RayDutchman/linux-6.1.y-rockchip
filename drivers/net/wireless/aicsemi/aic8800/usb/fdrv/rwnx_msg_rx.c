@@ -28,6 +28,8 @@
 #ifdef CONFIG_USE_WIRELESS_EXT
 #include "aicwf_wext_linux.h"
 #endif
+#include "rwnx_msg_rx.h"
+
 void rwnx_cfg80211_unlink_bss(struct rwnx_hw *rwnx_hw, struct rwnx_vif *rwnx_vif);
 
 static int rwnx_freq_to_idx(struct rwnx_hw *rwnx_hw, int freq)
@@ -790,12 +792,12 @@ static inline int rwnx_rx_scanu_result_ind(struct rwnx_hw *rwnx_hw,
 
 #ifdef CONFIG_USE_WIRELESS_EXT
 	if(rwnx_hw->wext_scan){
-		if (!bss) {
+		if (!bss ) {
 			AICWFDBG(LOGERROR, "%s: Invalid BSS structure\n", __func__);
 			goto putbss;
 		}
 		list_for_each_entry(scan_re_wext, &rwnx_hw->wext_scanre_list, scanu_re_list) {
-			if (!scan_re_wext || !scan_re_wext->bss) {
+			if (!scan_re_wext || !scan_re_wext->bss ) {
 				AICWFDBG(LOGDEBUG, "%s: Corrupted list entry detected\n", __func__);
 				continue;
 			}

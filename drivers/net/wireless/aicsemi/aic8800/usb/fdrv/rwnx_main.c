@@ -49,6 +49,7 @@
 #include "aic_priv_cmd.h"
 #include "rwnx_wakelock.h"
 #include "rwnx_msg_tx.h"
+#include "aic_vendor.h"
 #ifdef CONFIG_BAND_STEERING
 #include "aicwf_manager.h"
 #endif
@@ -547,7 +548,7 @@ static const int rwnx_hwq2uapsd[NL80211_NUM_ACS] = {
 struct semaphore aicwf_deinit_sem;
 atomic_t aicwf_deinit_atomic;
 
-int aicwf_dbg_level = LOGDATA;
+int aicwf_dbg_level = LOGERROR|LOGINFO|LOGFW;
 module_param(aicwf_dbg_level, int, 0660);
 #ifdef CONFIG_DYNAMIC_PWR
 int dynamic_pwr = 1;
@@ -989,13 +990,14 @@ void rwnx_chanctx_unlink(struct rwnx_vif *vif)
 {
     struct rwnx_chanctx *ctxt;
 
-    if (vif->ch_index == RWNX_CH_NOT_SET)
-        return;
-
-    if (vif->ch_index >= NX_CHAN_CTXT_CNT) {
-        WARN(1, "Invalid channel ctxt id %d", vif->ch_index);
+    if (vif->ch_index == RWNX_CH_NOT_SET) {
         return;
     }
+
+	if (vif->ch_index >= NX_CHAN_CTXT_CNT) {
+        WARN(1, "Invalid channel ctxt id %d", vif->ch_index);
+        return;
+	}
 
     ctxt = &vif->rwnx_hw->chanctx_table[vif->ch_index];
 
@@ -1948,7 +1950,7 @@ static struct rwnx_vif *rwnx_interface_add(struct rwnx_hw *rwnx_hw,
         vif->ap.generation = 0;
         vif->ap.mesh_pm = NL80211_MESH_POWER_ACTIVE;
         vif->ap.next_mesh_pm = NL80211_MESH_POWER_ACTIVE;
-	fallthrough;
+        // no break
     case NL80211_IFTYPE_AP:
         INIT_LIST_HEAD(&vif->ap.sta_list);
         memset(&vif->ap.bcn, 0, sizeof(vif->ap.bcn));
@@ -2223,7 +2225,6 @@ void aicwf_txpwer_per_sta_worker(struct work_struct *work)
 }
 #endif
 
-#ifdef CONFIG_DYNAMIC_PWR
 void set_txpwrloss_ctrl(struct rwnx_hw *rwnx_hw, s8 value)
 {
 	AICWFDBG(LOGINFO, "set_txpwrloss_ctrl: %d\n", value);
@@ -2241,6 +2242,7 @@ void set_txpwrloss_ctrl(struct rwnx_hw *rwnx_hw, s8 value)
 	}
 }
 
+#ifdef CONFIG_DYNAMIC_PWR
 void aicwf_pwrloss_worker(struct work_struct *work)
 {
 	struct rwnx_hw *rwnx_hw;
@@ -2305,6 +2307,7 @@ static void aicwf_pwrloss_timer(struct timer_list *t)
 	struct rwnx_hw *rwnx_hw;
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	struct rwnx_vif *rwnx_vif;
 	rwnx_vif = (struct rwnx_vif *)data;
 	rwnx_hw = rwnx_vif->rwnx_hw;
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
@@ -2676,7 +2679,7 @@ static int rwnx_cfg80211_change_iface(struct wiphy *wiphy,
         INIT_LIST_HEAD(&vif->ap.proxy_list);
         vif->ap.create_path = false;
         vif->ap.generation = 0;
-	fallthrough;
+        // no break
     case NL80211_IFTYPE_AP:
     case NL80211_IFTYPE_P2P_GO:
         INIT_LIST_HEAD(&vif->ap.sta_list);
@@ -4507,6 +4510,24 @@ int radio_idx,
     return res;
 }
 
+static int rwnx_cfg80211_get_tx_power(struct wiphy *wiphy,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+ struct wireless_dev *wdev,
+#endif
+	int *mbm)
+{
+    #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 8, 0)
+    struct wireless_dev *wdev = NULL;
+    #endif
+    //struct rwnx_hw *rwnx_hw = wiphy_priv(wiphy);
+    //struct rwnx_vif *vif;
+    s8 pwr = 0;
+    int res = 0;
+
+	*mbm = get_txpwr_max(pwr);
+
+    return res;
+}
 
 /**
  * @set_power_mgmt: set the power save to one of those two modes:
@@ -4963,7 +4984,6 @@ static int rwnx_cfg80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
     switch (RWNX_VIF_TYPE(rwnx_vif)) {
         case NL80211_IFTYPE_AP_VLAN:
             rwnx_vif = rwnx_vif->ap_vlan.master;
-	    fallthrough;
         case NL80211_IFTYPE_AP:
         case NL80211_IFTYPE_P2P_GO:
         case NL80211_IFTYPE_MESH_POINT:
@@ -5801,7 +5821,6 @@ int rwnx_fill_station_info(struct rwnx_sta *sta, struct rwnx_vif *vif,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 	case FORMATMOD_HE_MU:
 		sinfo->rxrate.he_ru_alloc = rx_vect1->he.ru_size;
-		fallthrough;
 	case FORMATMOD_HE_SU:
 	case FORMATMOD_HE_ER:
 		sinfo->rxrate.flags = RATE_INFO_FLAGS_HE_MCS;
@@ -6408,7 +6427,7 @@ static struct cfg80211_ops rwnx_cfg80211_ops = {
     .set_wiphy_params = rwnx_cfg80211_set_wiphy_params,
     .set_txq_params = rwnx_cfg80211_set_txq_params,
     .set_tx_power = rwnx_cfg80211_set_tx_power,
-//    .get_tx_power = rwnx_cfg80211_get_tx_power,
+    .get_tx_power = rwnx_cfg80211_get_tx_power,
     .set_power_mgmt = rwnx_cfg80211_set_power_mgmt,
     .get_station = rwnx_cfg80211_get_station,
     .remain_on_channel = rwnx_cfg80211_remain_on_channel,
@@ -8772,7 +8791,6 @@ void aic_ipc_setting(struct rwnx_vif *rwnx_vif){
 extern int get_adap_test(void);
 
 extern void *aicwf_usb_prealloc_txq_alloc(size_t size);
-extern int aicwf_vendor_init(struct wiphy *wiphy);
 extern char default_ccode[];
 int rwnx_cfg80211_init(struct rwnx_plat *rwnx_plat, void **platform_data)
 {
@@ -9237,6 +9255,7 @@ if((g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8801) ||
 		mod_timer(&rwnx_hw->tc_timer, jiffies + msecs_to_jiffies(TEMP_GET_INTERVAL));
 #endif
 
+
 #ifdef CONFIG_DYNAMIC_PERPWR
 		rwnx_hw->pwrth.rssi_thd_0 = RSSI_THD_0;
 		rwnx_hw->pwrth.rssi_thd_1 = RSSI_THD_1;
@@ -9319,19 +9338,19 @@ void rwnx_cfg80211_deinit(struct rwnx_hw *rwnx_hw)
 	}
 	cancel_work_sync(&rwnx_hw->pwrloss_work);
 #endif
-
 #ifdef CONFIG_TEMP_CONTROL
-	if(timer_pending(&rwnx_hw->tc_timer)){
+		if(timer_pending(&rwnx_hw->tc_timer)){
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
-		timer_delete_sync(&rwnx_hw->tc_timer);
+			timer_delete_sync(&rwnx_hw->tc_timer);
 #else
-		del_timer_sync(&rwnx_hw->tc_timer);
+			del_timer_sync(&rwnx_hw->tc_timer);
 #endif
-	}
-	cancel_work_sync(&rwnx_hw->tc_work);
+		}
+		cancel_work_sync(&rwnx_hw->tc_work);
 #endif
 
-	   spin_lock_bh(&rwnx_hw->defrag_lock);
+
+    spin_lock_bh(&rwnx_hw->defrag_lock);
     if (!list_empty(&rwnx_hw->defrag_list)) {
         list_for_each_entry(defrag_ctrl, &rwnx_hw->defrag_list, list) {
             list_del_init(&defrag_ctrl->list);

@@ -85,15 +85,27 @@ extern int testmode;
 #define SDIO_DEVICE_ID_AIC8800DC			0xc08d
 #define SDIO_DEVICE_ID_AIC8800D80           0x0082
 #define SDIO_DEVICE_ID_AIC8800D80N          0x9081
+#define SDIO_DEVICE_ID_AIC8800D80LN         0x9082
+#define SDIO_DEVICE_ID_AIC8800D80WN         0x9083
+#define SDIO_DEVICE_ID_AIC8800D40N          0x9084
+#define SDIO_DEVICE_ID_AIC8800D40LN         0x9085
+#define SDIO_DEVICE_ID_AIC8800D40WN         0x9086
 #define SDIO_DEVICE_ID_AIC8800D80X2         0x2082
 
 
 static int aicbsp_dummy_probe(struct sdio_func *func, const struct sdio_device_id *id)
 {
 	if (func && (func->num != 2) &&
-		(func->vendor != SDIO_VENDOR_ID_AIC8800D80N ||
-		func->device != SDIO_DEVICE_ID_AIC8800D80N))
+		!(func->vendor == SDIO_VENDOR_ID_AIC8800D80N &&
+		(func->device == SDIO_DEVICE_ID_AIC8800D80N ||
+		func->device == SDIO_DEVICE_ID_AIC8800D80LN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D80WN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40N ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40LN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40WN))) {
 		return 0;
+	}
+
 
 	if(func->vendor != SDIO_VENDOR_ID_AIC8801 &&
 		func->device != SDIO_DEVICE_ID_AIC8801 &&
@@ -254,10 +266,21 @@ static int aicwf_sdio_chipmatch(struct aic_sdio_dev *sdio_dev, uint16_t vid, uin
 		sdio_dev->chipid = PRODUCT_ID_AIC8800D80;
 		AICWFDBG(LOGINFO, "%s USE AIC8800D80\r\n", __func__);
 		return 0;
-	}else if(vid == SDIO_VENDOR_ID_AIC8800D80N && did == SDIO_DEVICE_ID_AIC8800D80N){
+	}else if(vid == SDIO_VENDOR_ID_AIC8800D80N &&
+		(did == SDIO_DEVICE_ID_AIC8800D80N ||
+		did == SDIO_DEVICE_ID_AIC8800D80LN ||
+		did == SDIO_DEVICE_ID_AIC8800D40N ||
+		did == SDIO_DEVICE_ID_AIC8800D40LN)){
 		sdio_dev->chipid = PRODUCT_ID_AIC8800D80N;
 		fdrv_no_reg_sdio = true;
 		AICWFDBG(LOGINFO, "%s USE AIC8800D80N\r\n", __func__);
+		return 0;
+	}else if(vid == SDIO_VENDOR_ID_AIC8800D80N &&
+		(did == SDIO_DEVICE_ID_AIC8800D80WN ||
+		did == SDIO_DEVICE_ID_AIC8800D40WN)){
+		sdio_dev->chipid = PRODUCT_ID_AIC8800D80WN;
+		fdrv_no_reg_sdio = true;
+		AICWFDBG(LOGINFO, "%s USE AIC8800D80WN\r\n", __func__);
 		return 0;
 	}else if(vid == SDIO_VENDOR_ID_AIC8800D80X2 && did == SDIO_DEVICE_ID_AIC8800D80X2){
 		sdio_dev->chipid = PRODUCT_ID_AIC8800D80X2;
@@ -306,10 +329,17 @@ static int aicbsp_sdio_probe(struct sdio_func *func,
 	}
 
 	if (func->num != 2 &&
-		(func->vendor != SDIO_VENDOR_ID_AIC8800D80N ||
-		func->device != SDIO_DEVICE_ID_AIC8800D80N)) {
+		!(func->vendor == SDIO_VENDOR_ID_AIC8800D80N &&
+		(func->device == SDIO_DEVICE_ID_AIC8800D80N ||
+		func->device == SDIO_DEVICE_ID_AIC8800D80LN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D80WN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40N ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40LN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40WN))) {
 		return err;
 	}
+
+
 
 	host = func->card->host;
 	host->caps |= MMC_CAP_NONREMOVABLE;
@@ -350,6 +380,7 @@ static int aicbsp_sdio_probe(struct sdio_func *func,
 
     if (sdiodev->chipid != PRODUCT_ID_AIC8800D80 &&
 		sdiodev->chipid != PRODUCT_ID_AIC8800D80N &&
+		sdiodev->chipid != PRODUCT_ID_AIC8800D80WN &&
 		sdiodev->chipid != PRODUCT_ID_AIC8800D80X2) {
 	    err = aicwf_sdio_func_init(sdiodev);
     } else {
@@ -439,8 +470,16 @@ static int aicbsp_sdio_suspend(struct device *dev)
 #endif
 
 	sdio_dbg("%s, func->num = %d\n", __func__, func->num);
-	if (func->num != 2)
+	if (func && (func->num != 2) &&
+		!(func->vendor == SDIO_VENDOR_ID_AIC8800D80N &&
+		(func->device == SDIO_DEVICE_ID_AIC8800D80N ||
+		func->device == SDIO_DEVICE_ID_AIC8800D80LN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D80WN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40N ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40LN ||
+		func->device == SDIO_DEVICE_ID_AIC8800D40WN))) {
 		return 0;
+	}
 
 	sdio_flags = sdio_get_host_pm_caps(func);
 	if (!(sdio_flags & MMC_PM_KEEP_POWER)) {
@@ -1019,7 +1058,8 @@ static int aicwf_sdio_tx_msg(struct aic_sdio_dev *sdiodev)
 			up(&sdiodev->tx_priv->cmd_txsema);
 			return -1;
 		}
-	}else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+	}else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		err = aicwf_sdio_send_pkt(sdiodev, payload, len);
 		if (err) {
 			sdio_err("aicwf_sdio_send_pkt fail%d\n", err);
@@ -1249,6 +1289,7 @@ int aicwf_sdio_aggr(struct aicwf_tx_priv *tx_priv, struct sk_buff *pkt)
         sdio_header[3] = 0; //reserved
     else if (tx_priv->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		tx_priv->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		tx_priv->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		tx_priv->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2)
 	    sdio_header[3] = crc8_ponl_107(&sdio_header[0], 3); // crc8
 
@@ -1358,6 +1399,7 @@ static int aicwf_sdio_bus_start(struct device *dev)
 			sdio_err("func2 intr register failed:%d\n", ret);
 	}else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80X2){
 		sdio_claim_host(sdiodev->func);
 		sdio_claim_irq(sdiodev->func, aicwf_sdio_hal_irqhandler);
@@ -1500,8 +1542,9 @@ void aicwf_sdio_hal_irqhandler(struct sdio_func *func)
     	    ret = aicwf_sdio_readb(sdiodev, sdiodev->sdio_reg.block_cnt_reg, &intstatus);
     	}
     }else if (sdiodev->chipid  == PRODUCT_ID_AIC8800D80 ||
-			sdiodev->chipid  == PRODUCT_ID_AIC8800D80N ||
-			sdiodev->chipid  == PRODUCT_ID_AIC8800D80X2) {
+			sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+			sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
+			sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) {
         do {
             ret = aicwf_sdio_readb(sdiodev, sdiodev->sdio_reg.misc_int_status_reg, &intstatus);
             if (!ret) {
@@ -1720,6 +1763,7 @@ void aicwf_sdio_reg_init(struct aic_sdio_dev *sdiodev)
         sdiodev->sdio_reg.wr_fifo_addr =           SDIOWIFI_WR_FIFO_ADDR;
 	} else if (sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80X2){
         sdiodev->sdio_reg.bytemode_len_reg =       SDIOWIFI_BYTEMODE_LEN_REG_V3;
         sdiodev->sdio_reg.intr_config_reg =        SDIOWIFI_INTR_ENABLE_REG_V3;

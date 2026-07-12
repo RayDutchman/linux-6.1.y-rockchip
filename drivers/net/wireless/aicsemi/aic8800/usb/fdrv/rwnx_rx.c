@@ -1364,8 +1364,10 @@ static void rwnx_rx_add_rtap_hdr(struct rwnx_hw* rwnx_hw,
         while ((pos - (u8 *)rtap) & 1)
             pos++;
         rtap->it_present |= cpu_to_le32(1 << IEEE80211_RADIOTAP_HE);
-        memcpy(pos, &he, sizeof(he));
-        pos += sizeof(he);
+        //memcpy(pos, &he, sizeof(he));
+		//pos += sizeof(he);
+		*(struct ieee80211_radiotap_he *)pos = he;
+		pos += sizeof(struct ieee80211_radiotap_he);
     }
 
     // Rx Chains
@@ -1829,8 +1831,7 @@ bool reord_rxframes_process(struct aicwf_rx_priv *rx_priv, struct reord_ctrl *pr
     return bPktInBuf;
 }
 
-void reord_rxframes_ind(struct aicwf_rx_priv *rx_priv,
-    struct reord_ctrl *preorder_ctrl)
+void reord_rxframes_ind(struct aicwf_rx_priv *rx_priv, struct reord_ctrl *preorder_ctrl)
 {
     struct list_head *phead, *plist;
     struct recv_msdu *prframe;

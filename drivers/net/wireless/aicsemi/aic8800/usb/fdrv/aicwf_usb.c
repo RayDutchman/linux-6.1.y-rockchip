@@ -155,22 +155,24 @@ static void aicwf_usb_msg_rx_buf_put(struct aic_usb_dev *usb_dev, struct aicwf_u
 }
 #endif
 
-void rwnx_stop_sta_all_queues(struct rwnx_sta *sta, struct rwnx_hw *rwnx_hw)
+void rwnx_stop_sta_all_queues(void *sta, struct rwnx_hw *rwnx_hw)
 {
     u8 tid;
     struct rwnx_txq *txq;
+	struct rwnx_sta *sta_tmp = (struct rwnx_sta *)sta;
     for(tid=0; tid<8; tid++) {
-        txq = rwnx_txq_sta_get(sta, tid, rwnx_hw);
+        txq = rwnx_txq_sta_get(sta_tmp, tid, rwnx_hw);
         netif_stop_subqueue(txq->ndev, txq->ndev_idx);
     }
 }
 
-void rwnx_wake_sta_all_queues(struct rwnx_sta *sta, struct rwnx_hw *rwnx_hw)
+void rwnx_wake_sta_all_queues(void *sta, struct rwnx_hw *rwnx_hw)
 {
     u8 tid;
     struct rwnx_txq *txq;
+	struct rwnx_sta *sta_tmp = (struct rwnx_sta *)sta;
     for(tid=0; tid<8; tid++) {
-        txq = rwnx_txq_sta_get(sta, tid, rwnx_hw);
+        txq = rwnx_txq_sta_get(sta_tmp, tid, rwnx_hw);
         netif_wake_subqueue(txq->ndev, txq->ndev_idx);
     }
 }
@@ -200,7 +202,7 @@ static void usb_txc_sta_flowctrl(struct aicwf_usb_buf *usb_buf, struct aic_usb_d
 							usb_dev->rwnx_hw->sta_flowctrl[sta_idx].flowctrl) {
 				//AICWFDBG(LOGDEBUG, "sta 0x%x:0x%x, %d pending %d, wake\n", sta->mac_addr[4], sta->mac_addr[5], sta->sta_idx, atomic_read(&usb_dev->rwnx_hw->sta_flowctrl[sta_idx].tx_pending_cnt));
 				if(!usb_dev->tbusy)
-					rwnx_wake_sta_all_queues(sta, usb_dev->rwnx_hw);
+					rwnx_wake_sta_all_queues((void *)sta, usb_dev->rwnx_hw);
 				usb_dev->rwnx_hw->sta_flowctrl[sta_idx].flowctrl = 0;
 			}
 		}
@@ -1674,7 +1676,7 @@ static void usb_tx_flow_ctrl(struct rwnx_txhdr *txhdr, struct aic_usb_dev *usb_d
 										rwnx_hw->sta_flowctrl[sta_idx].flowctrl) {
 				//AICWFDBG(LOGDEBUG, "sta 0x%x:0x%x, %d pending %d, stop\n", sta->mac_addr[4], sta->mac_addr[5], sta->sta_idx, atomic_read(&rwnx_hw->sta_flowctrl[sta_idx].tx_pending_cnt));
 				if(!usb_dev->tbusy)
-					rwnx_stop_sta_all_queues(sta, usb_dev->rwnx_hw);
+					rwnx_stop_sta_all_queues((void *)sta, usb_dev->rwnx_hw);
 				rwnx_hw->sta_flowctrl[sta_idx].flowctrl = 1;
 			}
 		}
@@ -2380,7 +2382,10 @@ static int aicwf_usb_chipmatch(struct aic_usb_dev *usb_dev, u16_l vid, u16_l pid
         return 0;
     } else if ((pid == USB_PRODUCT_ID_AIC8800D80N) ||
                (pid == USB_PRODUCT_ID_AIC8800D80LN) ||
-               (pid == USB_PRODUCT_ID_AIC8800D80WN)) {
+               (pid == USB_PRODUCT_ID_AIC8800D80WN) ||
+               (pid == USB_PRODUCT_ID_AIC8800D40N) ||
+               (pid == USB_PRODUCT_ID_AIC8800D40LN) ||
+               (pid == USB_PRODUCT_ID_AIC8800D40WN)) {
         usb_dev->chipid = PRODUCT_ID_AIC8800D80N;
         aicwf_usb_rx_aggr = true;
         AICWFDBG(LOGINFO, "%s USE AIC8800D80N\r\n", __func__);
@@ -2627,7 +2632,8 @@ static int aicwf_usb_resume(struct usb_interface *intf)
     }
 
         if (usb_dev->state != USB_UP_ST){
-        aicwf_bus_start(usb_dev->bus_if);
+            aicwf_bus_start(usb_dev->bus_if);
+            g_rwnx_plat->wait_disconnect_cb = false;
         }
 
     list_for_each_entry_safe(rwnx_vif, tmp, &usb_dev->rwnx_hw->vifs, list) {
@@ -2657,6 +2663,9 @@ static struct usb_device_id aicwf_usb_id_table[] = {
     {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800D80N, 0xff, 0xff, 0xff)},
     {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800D80LN, 0xff, 0xff, 0xff)},
     {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800D80WN, 0xff, 0xff, 0xff)},
+    {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800D40N, 0xff, 0xff, 0xff)},
+    {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800D40LN, 0xff, 0xff, 0xff)},
+    {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800D40WN, 0xff, 0xff, 0xff)},
     {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800DLN, 0xff, 0xff, 0xff)},
     {USB_DEVICE_AND_INTERFACE_INFO(USB_VENDOR_ID_AIC_V2, USB_PRODUCT_ID_AIC8800DWN, 0xff, 0xff, 0xff)},
 #endif

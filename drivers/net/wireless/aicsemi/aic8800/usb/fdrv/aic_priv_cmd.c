@@ -1279,6 +1279,49 @@ static int aic_priv_cmd_set_pll_test (struct rwnx_hw *rwnx_hw, int argc, char *a
 	return 0;
 }
 
+static int aic_priv_cmd_get_txpwr(struct rwnx_hw *rwnx_hw, int argc, char *argv[], char *command)
+{
+	s8_l power=0;
+	power = get_txpwr_max(power);
+	memcpy(command, &power, 1);
+	return 1;
+}
+
+static int aic_priv_cmd_set_txpwr_loss(struct rwnx_hw *rwnx_hw, int argc, char *argv[], char *command)
+{
+	s8_l func;
+#ifdef AICWF_SDIO_SUPPORT
+        struct aic_sdio_dev *dev = g_rwnx_plat->sdiodev;
+#endif
+#ifdef AICWF_USB_SUPPORT
+        struct aic_usb_dev *dev = g_rwnx_plat->usbdev;
+#endif
+
+	if (argc > 1) {
+		func = (s8_l)command_strtoul(argv[1], NULL, 10);
+		AICWFDBG(LOGINFO, "set txpwr loss: %d\n", func);
+		if (dev->chipid == PRODUCT_ID_AIC8800D81 ||
+			dev->chipid == PRODUCT_ID_AIC8800D80N){
+			set_txpwr_loss_ofst(func);
+			rwnx_send_txpwr_lvl_v3_req(dev->rwnx_hw);
+		}else if(dev->chipid == PRODUCT_ID_AIC8800D81X2 ||
+			dev->chipid == PRODUCT_ID_AIC8800D89X2){
+			set_txpwr_loss_ofst(func);
+			rwnx_send_txpwr_lvl_v4_req(dev->rwnx_hw);
+		}else if(dev->chipid == PRODUCT_ID_AIC8800DC ||
+			dev->chipid == PRODUCT_ID_AIC8800DW){
+			set_txpwr_loss_ofst(func);
+			rwnx_send_txpwr_lvl_req(dev->rwnx_hw);
+		}else{
+			AICWFDBG(LOGINFO, "error:don't support 8800D");
+		}
+	} else {
+		AICWFDBG(LOGERROR, "wrong args\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static int aic_priv_cmd_set_ant_mode (struct rwnx_hw *rwnx_hw, int argc, char *argv[], char *command)
 {
 	u8_l func = 0;
@@ -1639,6 +1682,10 @@ static const struct aic_priv_cmd aic_priv_commands[] = {
 	  "= off usb configure before usb disconnect" },
 	{ "set_pll_test", aic_priv_cmd_set_pll_test,
 	  "<func> <freq> <tx_pwr> = use pll test to measure saturation power" },
+	{ "get_txpwr", aic_priv_cmd_get_txpwr,
+	  "= get userconfig max txpwr" },
+	{ "set_txpwr_loss",aic_priv_cmd_set_txpwr_loss,
+	  "<val> = txpwr will change ,val can be negative" },
 	{ "set_ant", aic_priv_cmd_set_ant_mode,
 	  "<val> = 0/ant0, 1/ant1, 2/both" },
 	{ "rdwr_bt_efuse_pwrofst", aic_priv_cmd_rdwr_bt_efuse_pwrofst,

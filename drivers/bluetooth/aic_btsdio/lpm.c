@@ -799,7 +799,7 @@ static int bluesleep_probe(struct platform_device *pdev)
 		BT_DBG("override host_wake assert to %d", bsi->host_wake_assert);
 	}
 
-	ret = devm_gpio_request(dev, bsi->host_wake, "bt_hostwake");
+	ret = gpio_request(bsi->host_wake, "bt_hostwake");
 	if (ret < 0) {
 		BT_ERR("can't request bt_hostwake gpio %d\n",
 			bsi->host_wake);
@@ -845,7 +845,7 @@ static int bluesleep_probe(struct platform_device *pdev)
 		goto err2;
 	}
 
-	ret = devm_gpio_request(dev, bsi->ext_wake, "bt_wake");
+	ret = gpio_request(bsi->ext_wake, "bt_wake");
 	if (ret < 0) {
 		BT_ERR("can't request bt_wake gpio %d\n",
 			bsi->ext_wake);
@@ -911,11 +911,11 @@ static int bluesleep_probe(struct platform_device *pdev)
 	return 0;
 
 err3:
-	devm_gpio_free(dev, bsi->ext_wake);
+	gpio_free(bsi->ext_wake);
 err2:
 	device_init_wakeup(dev, false);
 err1:
-	devm_gpio_free(dev, bsi->host_wake);
+	gpio_free(bsi->host_wake);
 err0:
 	devm_kfree(dev, bsi);
 

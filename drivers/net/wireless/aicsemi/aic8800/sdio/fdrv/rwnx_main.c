@@ -467,6 +467,14 @@ rwnx_default_mgmt_stypes[NUM_NL80211_IFTYPES] = {
 	},
 };
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)
+#define WLAN_CIPHER_SUITE_GCMP_256	0x000FAC09
+#define WLAN_CIPHER_SUITE_CCMP_256	0x000FAC0A
+#define WLAN_CIPHER_SUITE_BIP_GMAC_128	0x000FAC0B
+#define WLAN_CIPHER_SUITE_BIP_GMAC_256	0x000FAC0C
+#define WLAN_CIPHER_SUITE_BIP_CMAC_256	0x000FAC0D
+#define WLAN_CIPHER_SUITE_SMS4		0x00147201
+#endif
 
 static u32 cipher_suites[] = {
 	WLAN_CIPHER_SUITE_WEP40,
@@ -527,7 +535,7 @@ static const int rwnx_hwq2uapsd[NL80211_NUM_ACS] = {
 
 
 extern uint8_t scanning;
-int aicwf_dbg_level = LOGWAKELOCK;
+int aicwf_dbg_level = LOGERROR|LOGINFO|LOGDEBUG|LOGTRACE|LOGFW;
 module_param(aicwf_dbg_level, int, 0660);
 #ifdef CONFIG_DYNAMIC_PWR
 int dynamic_pwr = 1;
@@ -1650,7 +1658,7 @@ static struct rwnx_vif *rwnx_interface_add(struct rwnx_hw *rwnx_hw,
 		vif->ap.generation = 0;
 		vif->ap.mesh_pm = NL80211_MESH_POWER_ACTIVE;
 		vif->ap.next_mesh_pm = NL80211_MESH_POWER_ACTIVE;
-		fallthrough;
+		// no break
 	case NL80211_IFTYPE_AP:
 		INIT_LIST_HEAD(&vif->ap.sta_list);
 		memset(&vif->ap.bcn, 0, sizeof(vif->ap.bcn));
@@ -2070,7 +2078,7 @@ static int rwnx_cfg80211_change_iface(struct wiphy *wiphy,
 		INIT_LIST_HEAD(&vif->ap.proxy_list);
 		vif->ap.create_path = false;
 		vif->ap.generation = 0;
-		fallthrough;
+		// no break
 	case NL80211_IFTYPE_AP:
 	case NL80211_IFTYPE_P2P_GO:
 		INIT_LIST_HEAD(&vif->ap.sta_list);
@@ -4116,7 +4124,6 @@ static int rwnx_cfg80211_mgmt_tx(struct wiphy *wiphy, struct wireless_dev *wdev,
 	switch (RWNX_VIF_TYPE(rwnx_vif)) {
 	case NL80211_IFTYPE_AP_VLAN:
 		rwnx_vif = rwnx_vif->ap_vlan.master;
-		fallthrough;
 	case NL80211_IFTYPE_AP:
 	case NL80211_IFTYPE_P2P_GO:
 	case NL80211_IFTYPE_MESH_POINT:
@@ -4449,7 +4456,7 @@ rwnx_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 			printk("%s: only one TDLS link is supported!\n", __func__);
 			status_code = WLAN_STATUS_REQUEST_DECLINED;
 		}
-		fallthrough;
+		/* fall-through */
 	case WLAN_TDLS_SETUP_REQUEST:
 	case WLAN_TDLS_TEARDOWN:
 	case WLAN_TDLS_DISCOVERY_REQUEST:
@@ -4778,7 +4785,6 @@ static int rwnx_fill_station_info(struct rwnx_sta *sta, struct rwnx_vif *vif,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 	case FORMATMOD_HE_MU:
 		sinfo->rxrate.he_ru_alloc = rx_vect1->he.ru_size;
-		fallthrough;
 	case FORMATMOD_HE_SU:
 	case FORMATMOD_HE_ER:
 		sinfo->rxrate.flags = RATE_INFO_FLAGS_HE_MCS;
@@ -4821,7 +4827,8 @@ static int rwnx_fill_station_info(struct rwnx_sta *sta, struct rwnx_vif *vif,
 					 BIT(NL80211_STA_INFO_RX_PACKETS)    |
 					 BIT(NL80211_STA_INFO_TX_PACKETS)    |
 					 BIT(NL80211_STA_INFO_SIGNAL)        |
-					 BIT(NL80211_STA_INFO_RX_BITRATE));
+					 BIT(NL80211_STA_INFO_RX_BITRATE)	 |
+					 BIT(NL80211_STA_INFO_TX_FAILED));
 #endif
 
 	return 0;
@@ -5452,6 +5459,7 @@ static void rwnx_reg_notifier(struct wiphy *wiphy,
 	if (!rwnx_hw->mod_params->custregd) {
 		AICWFDBG(LOGINFO, "regulatory domain set to %c%c, initiator: %d\n", alpha2[0], alpha2[1], initiator);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
 		if (rwnx_hw->last_alpha2[0]) {
 			s64 delta = ktime_ms_delta(now, rwnx_hw->last_time);
 			if (delta < 0 || delta > INT_MAX)
@@ -5461,6 +5469,7 @@ static void rwnx_reg_notifier(struct wiphy *wiphy,
 				return;
 			}
 		}
+#endif
 
 		regulatory_hint(wiphy, alpha2);
 		memcpy(rwnx_hw->last_alpha2, request->alpha2, 2);
@@ -5482,6 +5491,7 @@ static void rwnx_reg_notifier(struct wiphy *wiphy,
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800DW ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) && testmode == 0)){
 			rwnx_send_me_chan_config_req(rwnx_hw, &request->alpha2[0]);
 		}
@@ -5616,6 +5626,7 @@ int rwnx_ic_rf_init(struct rwnx_hw *rwnx_hw){
 
 	}else if(rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2){
 		if ((ret = aicwf_set_rf_config_8800d80(rwnx_hw, &cfm)))
 			return -1;
@@ -6129,6 +6140,7 @@ int rwnx_cfg80211_init(struct rwnx_plat *rwnx_plat, void **platform_data)
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800DW ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) && testmode == 0)){
 		rwnx_send_me_config_req(rwnx_hw);
 	}
@@ -6156,6 +6168,7 @@ int rwnx_cfg80211_init(struct rwnx_plat *rwnx_plat, void **platform_data)
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800DW ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) && testmode == 0)) {
 		rwnx_send_me_chan_config_req(rwnx_hw, default_ccode);
 	}

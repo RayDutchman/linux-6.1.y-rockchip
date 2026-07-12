@@ -20,20 +20,6 @@ extern int flash_erase_len;
 int flash_write_size = 0;
 u32 flash_write_bin_crc = 0;
 
-typedef struct
-{
-    int8_t enable;
-    int8_t dsss;
-    int8_t ofdmlowrate_2g4;
-    int8_t ofdm64qam_2g4;
-    int8_t ofdm256qam_2g4;
-    int8_t ofdm1024qam_2g4;
-    int8_t ofdmlowrate_5g;
-    int8_t ofdm64qam_5g;
-    int8_t ofdm256qam_5g;
-    int8_t ofdm1024qam_5g;
-} txpwr_idx_conf_t;
-
 
 txpwr_idx_conf_t userconfig_txpwr_idx = {
 	.enable 		  = 1,
@@ -49,17 +35,6 @@ txpwr_idx_conf_t userconfig_txpwr_idx = {
 
 };
 
-typedef struct
-{
-    int8_t enable;
-    int8_t chan_1_4;
-    int8_t chan_5_9;
-    int8_t chan_10_13;
-    int8_t chan_36_64;
-    int8_t chan_100_120;
-    int8_t chan_122_140;
-    int8_t chan_142_165;
-} txpwr_ofst_conf_t;
 
 txpwr_ofst_conf_t userconfig_txpwr_ofst = {
 	.enable = 1,
@@ -71,13 +46,6 @@ txpwr_ofst_conf_t userconfig_txpwr_ofst = {
 	.chan_122_140 = 0,
 	.chan_142_165 = 0
 };
-
-typedef struct
-{
-    int8_t enable;
-    int8_t xtal_cap;
-    int8_t xtal_cap_fine;
-} xtal_cap_conf_t;
 
 
 xtal_cap_conf_t userconfig_xtal_cap = {
@@ -175,14 +143,10 @@ enum aicbsp_cpmode_type {
 #define AIC_HW_INFO 0x21
 
 #define FW_PATH_MAX 200
-#if defined(CONFIG_AIC_FW_PATH)
-static const char* aic_default_fw_path = CONFIG_AIC_FW_PATH;
-#else
 #if defined(CONFIG_PLATFORM_UBUNTU)
 static const char* aic_default_fw_path = "/lib/firmware";
 #else
 static const char* aic_default_fw_path = "/vendor/etc/firmware";
-#endif
 #endif
 char aic_fw_path[FW_PATH_MAX];
 module_param_string(aic_fw_path, aic_fw_path, FW_PATH_MAX, 0660);
@@ -908,40 +872,47 @@ void aicwf_usb_get_fw_path(char* fw_path){
 		memcpy(fw_path, aic_default_fw_path, strlen(aic_default_fw_path));
 	}
 } 
-EXPORT_SYMBOL(aicwf_usb_get_fw_path);
 
 void aicwf_usb_set_testmode(int val){
 	testmode = val;
 }
-EXPORT_SYMBOL(aicwf_usb_set_testmode);
 
 int aicwf_usb_get_testmode(void){
 	return testmode;
 }
-EXPORT_SYMBOL(aicwf_usb_get_testmode);
 
 int aicwf_usb_get_hardware_info(void){
 	return AIC_HW_INFO;
 }
-EXPORT_SYMBOL(aicwf_usb_get_hardware_info);
 
 extern int adap_test;
 int aicwf_usb_get_adap_test(void){
     return adap_test;
 }
-EXPORT_SYMBOL(aicwf_usb_get_adap_test);
 
 int aicwf_usb_get_flash_bin_size(void)
 {
     return flash_write_size;
 }
-EXPORT_SYMBOL(aicwf_usb_get_flash_bin_size);
 
 u32 aicwf_usb_get_flash_bin_crc(void)
 {
     return flash_write_bin_crc;
 }
+
+EXPORT_SYMBOL(aicwf_usb_get_fw_path);
+
+EXPORT_SYMBOL(aicwf_usb_get_testmode);
+
+EXPORT_SYMBOL(aicwf_usb_set_testmode);
+
+EXPORT_SYMBOL(aicwf_usb_get_hardware_info);
+
+EXPORT_SYMBOL(aicwf_usb_get_adap_test);
+
+EXPORT_SYMBOL(aicwf_usb_get_flash_bin_size);
 EXPORT_SYMBOL(aicwf_usb_get_flash_bin_crc);
+
 
 void aicwf_usb_get_userconfig_xtal_cap(xtal_cap_conf_t *xtal_cap)
 {
@@ -953,6 +924,7 @@ void aicwf_usb_get_userconfig_xtal_cap(xtal_cap_conf_t *xtal_cap)
     printk("%s:xtal_cap     :%d\r\n", __func__, xtal_cap->xtal_cap);
     printk("%s:xtal_cap_fine:%d\r\n", __func__, xtal_cap->xtal_cap_fine);
 }
+
 EXPORT_SYMBOL(aicwf_usb_get_userconfig_xtal_cap);
 
 void aicwf_usb_get_userconfig_txpwr_idx(txpwr_idx_conf_t *txpwr_idx){
@@ -979,6 +951,7 @@ void aicwf_usb_get_userconfig_txpwr_idx(txpwr_idx_conf_t *txpwr_idx){
 	printk("%s:ofdm1024qam_5g:%d\r\n", __func__, txpwr_idx->ofdm1024qam_5g);
 
 }
+
 EXPORT_SYMBOL(aicwf_usb_get_userconfig_txpwr_idx);
 
 void aicwf_usb_get_userconfig_txpwr_ofst(txpwr_ofst_conf_t *txpwr_ofst){
@@ -1001,6 +974,7 @@ void aicwf_usb_get_userconfig_txpwr_ofst(txpwr_ofst_conf_t *txpwr_ofst){
 	printk("%s:ofst_chan_142_165:%d\r\n", __func__, txpwr_ofst->chan_142_165);
 
 }
+
 EXPORT_SYMBOL(aicwf_usb_get_userconfig_txpwr_ofst);
 
 void rwnx_plat_userconfig_set_value(char *command, char *value){	

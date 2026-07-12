@@ -618,7 +618,7 @@ int rwnx_send_add_if(struct rwnx_hw *rwnx_hw, const unsigned char *mac,
     //case NL80211_IFTYPE_P2P_DEVICE:
     case NL80211_IFTYPE_P2P_CLIENT:
         add_if_req_param->p2p = true;
-	fallthrough;
+        // no break
     #endif /* CONFIG_RWNX_FULLMAC */
     case NL80211_IFTYPE_STATION:
         add_if_req_param->type = MM_STA;
@@ -631,7 +631,7 @@ int rwnx_send_add_if(struct rwnx_hw *rwnx_hw, const unsigned char *mac,
     #ifdef CONFIG_RWNX_FULLMAC
     case NL80211_IFTYPE_P2P_GO:
         add_if_req_param->p2p = true;
-	fallthrough;
+        // no break
     #endif /* CONFIG_RWNX_FULLMAC */
     case NL80211_IFTYPE_AP:
         add_if_req_param->type = MM_AP;
@@ -5180,6 +5180,54 @@ int rwnx_send_cfg_rssi_req(struct rwnx_hw *rwnx_hw, u8 vif_index, int rssi_thold
 
     /* Send the MM_CFG_RSSI_REQ message to LMAC FW */
     return rwnx_send_msg(rwnx_hw, req, 1, MM_CFG_RSSI_CFM, NULL);
+}
+
+int rwnx_send_get_temp_req(struct rwnx_hw *rwnx_hw, s8_l *temp)
+{
+	struct mm_get_chip_temp_req *hwreq;
+	struct mm_set_vendor_swconfig_req *swreq;
+	struct mm_set_vendor_hwconfig_cfm hwcfm;
+	struct mm_set_vendor_swconfig_cfm swcfm;
+	int ret = 0;
+
+	RWNX_DBG(RWNX_FN_ENTRY_STR);
+
+	if(rwnx_hw->usbdev->chipid == PRODUCT_ID_AIC8800DC ||
+		rwnx_hw->usbdev->chipid == PRODUCT_ID_AIC8800DW){
+		/* Build the CHIP_TEMP_GET_REQ message */
+		hwreq = rwnx_msg_zalloc(MM_SET_VENDOR_HWCONFIG_REQ, TASK_MM, DRV_TASK_ID, sizeof(struct mm_get_chip_temp_req));
+		if (!hwreq)
+			return -ENOMEM;
+		hwreq->hwconfig_id = CHIP_TEMP_GET_REQ;
+		/* Send the MM_SET_VENDOR_HWCONFIG_REQ	message to UMAC FW */
+		ret = rwnx_send_msg(rwnx_hw, hwreq, 1, MM_SET_VENDOR_HWCONFIG_CFM, &hwcfm);
+		if (!ret) {
+			AICWFDBG(LOGINFO, "get_chip_temp degree=%d\n", hwcfm.chip_temp_cfm.degree);
+			*temp = hwcfm.chip_temp_cfm.degree;
+		} else {
+			AICWFDBG(LOGINFO, "get_chip_temp err=%d\n", ret);
+			return ret;
+		}
+		return ret;
+	} else if (rwnx_hw->usbdev->chipid >= PRODUCT_ID_AIC8800D80N) {
+		/* Build the TEMP_COMP_GET_REQ message */
+		swreq = rwnx_msg_zalloc(MM_SET_VENDOR_SWCONFIG_REQ, TASK_MM, DRV_TASK_ID, sizeof(struct mm_set_vendor_swconfig_req));
+		if (!swreq) {
+			AICWFDBG(LOGINFO, "%s msg_alloc fail\n", __func__);
+			return -ENOMEM;
+		}
+		swreq->swconfig_id = TEMP_COMP_GET_REQ;
+
+		ret = rwnx_send_msg(rwnx_hw, swreq, 1, MM_SET_VENDOR_SWCONFIG_CFM, &swcfm);
+		if (!ret) {
+			AICWFDBG(LOGINFO, "status=%d, temp=%d\n", swcfm.temp_comp_get_cfm.status, swcfm.temp_comp_get_cfm.degree);
+			*temp = swcfm.temp_comp_get_cfm.degree;
+		} else {
+			AICWFDBG(LOGINFO, "%s msg_fail\n", __func__);
+			return ret;
+		}
+	}
+	return ret;
 }
 
 //#ifdef CONFIG_USB_BT

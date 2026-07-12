@@ -885,7 +885,7 @@ int rwnx_plat_bin_fw_upload_2_with_version(struct rwnx_hw *rwnx_hw, u32 fw_addr,
         for (char_idx = 0; char_idx < version_size; char_idx++) {
             version_str[char_idx] = bin_str[char_idx];
             if (bin_str[char_idx] == '\0') {
-                break;
+                //break;
             }
         }
         if (char_idx == version_size) {
@@ -2476,6 +2476,101 @@ void get_userconfig_txpwr_loss(txpwr_loss_conf_t *txpwr_loss)
 				txpwr_loss->loss_enable_2g4, txpwr_loss->loss_value_2g4,
 				txpwr_loss->loss_enable_5g, txpwr_loss->loss_value_5g);
 }
+s8_l get_txpwr_max(s8_l power)
+{
+	int i=0;
+
+	if(g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8800D81X2 ||
+		g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8800D89X2 ){
+		for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v4.pwrlvl_11b_11ag_2g4[i])
+				power = userconfig_info.txpwr_lvl_v4.pwrlvl_11b_11ag_2g4[i];
+		}
+	    for (i = 0; i <= 9; i++){
+			if(power < userconfig_info.txpwr_lvl_v4.pwrlvl_11n_11ac_2g4[i])
+				power = userconfig_info.txpwr_lvl_v4.pwrlvl_11n_11ac_2g4[i];
+	    }
+	    for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v4.pwrlvl_11ax_2g4[i])
+				power = userconfig_info.txpwr_lvl_v4.pwrlvl_11ax_2g4[i];
+	    }
+		for (i = 0; i <= 7; i++){
+			if(power < userconfig_info.txpwr_lvl_v4.pwrlvl_11a_5g[i])
+				power = userconfig_info.txpwr_lvl_v4.pwrlvl_11a_5g[i];
+		}
+	    for (i = 0; i <= 9; i++){
+			if(power < userconfig_info.txpwr_lvl_v4.pwrlvl_11n_11ac_5g[i])
+				power = userconfig_info.txpwr_lvl_v4.pwrlvl_11n_11ac_5g[i];
+	    }
+		for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v4.pwrlvl_11ax_5g[i])
+				power = userconfig_info.txpwr_lvl_v4.pwrlvl_11ax_5g[i];
+		}
+
+		if ((userconfig_info.txpwr_loss.loss_enable_2g4 == 1) ||
+			(userconfig_info.txpwr_loss.loss_enable_5g == 1)) {
+		if (userconfig_info.txpwr_loss.loss_value_2g4 <
+			userconfig_info.txpwr_loss.loss_value_5g)
+			power += userconfig_info.txpwr_loss.loss_value_5g;
+		else
+			power += userconfig_info.txpwr_loss.loss_value_2g4;
+		}
+	}
+	else if (g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8800D81 ||
+		g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8800D80N){
+		for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11b_11ag_2g4[i])
+				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11b_11ag_2g4[i];
+		}
+	    for (i = 0; i <= 9; i++){
+			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11n_11ac_2g4[i])
+				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11n_11ac_2g4[i];
+	    }
+	    for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11ax_2g4[i])
+				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11ax_2g4[i];
+	    }
+		for (i = 4; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11a_5g[i])
+				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11a_5g[i];
+		}
+	    for (i = 0; i <= 9; i++){
+			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11n_11ac_5g[i])
+				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11n_11ac_5g[i];
+	    }
+		for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v3.pwrlvl_11ax_5g[i])
+				power = userconfig_info.txpwr_lvl_v3.pwrlvl_11ax_5g[i];
+		}
+
+		if ((userconfig_info.txpwr_loss.loss_enable_2g4 == 1) ||
+			(userconfig_info.txpwr_loss.loss_enable_5g == 1)) {
+			if (userconfig_info.txpwr_loss.loss_value_2g4 <
+				userconfig_info.txpwr_loss.loss_value_5g)
+				power += userconfig_info.txpwr_loss.loss_value_5g;
+			else
+				power += userconfig_info.txpwr_loss.loss_value_2g4;
+		}
+
+	}else if(g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8800DC || g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8800DW){
+		for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v2.pwrlvl_11b_11ag_2g4[i])
+				power = userconfig_info.txpwr_lvl_v2.pwrlvl_11b_11ag_2g4[i];
+		}
+	    for (i = 0; i <= 9; i++){
+			if(power < userconfig_info.txpwr_lvl_v2.pwrlvl_11n_11ac_2g4[i])
+				power = userconfig_info.txpwr_lvl_v2.pwrlvl_11n_11ac_2g4[i];
+	    }
+	    for (i = 0; i <= 11; i++){
+			if(power < userconfig_info.txpwr_lvl_v2.pwrlvl_11ax_2g4[i])
+				power = userconfig_info.txpwr_lvl_v2.pwrlvl_11ax_2g4[i];
+	    }
+	}
+
+	AICWFDBG(LOGINFO, "%s:txpwr_max:%d \r\n",__func__,power);
+	return power;
+}
+
 void set_txpwr_loss_ofst(s8_l value)
 {
     userconfig_info.txpwr_loss.loss_enable_2g4 = 1;

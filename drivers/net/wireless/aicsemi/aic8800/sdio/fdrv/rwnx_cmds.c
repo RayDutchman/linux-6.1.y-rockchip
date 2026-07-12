@@ -573,6 +573,7 @@ void aicwf_set_cmd_tx(void *dev, struct lmac_msg *msg, uint len)
         buffer[3] = 0x0;
     else if (sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80X2)
 	    buffer[3] = crc8_ponl_107(&buffer[0], 3); // crc8
 	index += 4;

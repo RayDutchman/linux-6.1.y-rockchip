@@ -24,7 +24,8 @@ int aicwf_set_rf_config_8800d80(struct rwnx_hw *rwnx_hw, struct mm_set_rf_calib_
 	int ret = 0;
 
 	if(rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
-		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		rwnx_hw->sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		if ((ret = rwnx_send_txpwr_lvl_v3_req(rwnx_hw))) {
 			return -1;
 		}
@@ -183,7 +184,7 @@ int rwnx_plat_powerlimit_load_8800d80n(struct rwnx_hw *rwnx_hw)
     AICWFDBG(LOGINFO, "### Load file done: %s, size=%d\n", filename, size);
 
     /* parsing the file */
-    rwnx_plat_powerlimit_parsing((char *)dst, size, country_code);
+    rwnx_plat_powerlimit_parsing((char *)dst, size);
 
     rwnx_release_firmware_common(&dst);
 

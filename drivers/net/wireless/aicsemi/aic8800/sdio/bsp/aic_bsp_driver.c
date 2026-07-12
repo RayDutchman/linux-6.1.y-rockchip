@@ -269,6 +269,7 @@ void rwnx_set_cmd_tx(void *dev, struct lmac_msg *msg, uint len)
         buffer[3] = 0x0;
     else if (sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		sdiodev->chipid == PRODUCT_ID_AIC8800D80X2)
 	    buffer[3] = crc8_ponl_107(&buffer[0], 3); // crc8
 	index += 4;
@@ -1460,7 +1461,8 @@ int aicbt_ext_patch_data_load(struct aic_sdio_dev *sdiodev, struct aicbt_patch_i
         } else if (sdiodev->chipid == PRODUCT_ID_AIC8800D80X2) {
 			AICWFDBG(LOGDEBUG, "[0x40580000]: 0x00040220\n");
 			ret = rwnx_send_dbg_mem_write_req(sdiodev, 0x40580000, 0x00040220);
-        } else if (sdiodev->chipid == PRODUCT_ID_AIC8800D80N) {
+        } else if (sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+			sdiodev->chipid == PRODUCT_ID_AIC8800D80WN) {
 			AICWFDBG(LOGDEBUG, "[0x40506004]: 0x04338000\n");
 			ret = rwnx_send_dbg_mem_write_req(sdiodev, 0x40506004, 0x04338000);
 			AICWFDBG(LOGDEBUG, "[0x40509000]: 0x00040000\n");
@@ -1546,7 +1548,8 @@ int aicbt_patch_trap_data_load(struct aic_sdio_dev *sdiodev, struct aicbt_patch_
             printk("%s, aicbt_patch_info_unpack fail\n", __func__);
             return -1;
         }
-	} else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+	} else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		aicbt_patch_info_unpack(&patch_info, head);
 		if(patch_info.info_len == 0) {
 			printk("%s, aicbt_patch_info_unpack fail\n", __func__);
@@ -1606,6 +1609,14 @@ static struct aicbt_info_t aicbt_info[]={
         .lpm_enable    = AICBT_LPM_ENABLE_DEFAULT,
         .txpwr_lvl     = AICBT_TXPWR_LVL_DEFAULT_8800d80n,
     },//PRODUCT_ID_AIC8800D80N
+            {
+        .btmode        = AICBT_BTMODE_DEFAULT_8800d80n,
+        .btport        = AICBT_BTPORT_DEFAULT,
+        .uart_baud     = AICBT_UART_BAUD_DEFAULT,
+        .uart_flowctrl = AICBT_UART_FC_DEFAULT,
+        .lpm_enable    = AICBT_LPM_ENABLE_DEFAULT,
+        .txpwr_lvl     = AICBT_TXPWR_LVL_DEFAULT_8800d80n,
+    },//PRODUCT_ID_AIC8800D80WN
     {
         .btmode        = AICBT_BTMODE_DEFAULT_8800d80x2,
         .btport        = AICBT_BTPORT_DEFAULT,
@@ -1934,7 +1945,8 @@ int aicwifi_init(struct aic_sdio_dev *sdiodev)
 		printk("############ aicwf_patch_config_8800dc done\n");
 
 		start_from_bootrom_8800DC(sdiodev);
-	}else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
+	}else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
 		printk("############ aicwifi_init begin \n");
 		system_config_8800d80n(sdiodev);
 		if (testmode == FW_NORMAL_MODE) {
@@ -1949,11 +1961,6 @@ int aicwifi_init(struct aic_sdio_dev *sdiodev)
 				return ret;
 			}
 			aicwf_patch_config_8800d80n(sdiodev);
-			ret = aicwf_plat_cinit_exec_8800d80n(sdiodev);
-			if (ret) {
-				AICWFDBG(LOGERROR, "plat_cinit_exec fail: %d\n", ret);
-				return ret;
-			}
 			ret = aicwf_plat_calib_exec_8800d80n(sdiodev);
 			if (ret) {
 				AICWFDBG(LOGERROR, "plat_calib_exec fail: %d\n", ret);
@@ -2163,9 +2170,11 @@ int aicbsp_driver_fw_init(struct aic_sdio_dev *sdiodev)
 					return -1;
 			}
 	}
-	else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N){
-		AICWFDBG(LOGINFO, "IS_CHIP_D80N \n");
-		btenable = 1;
+	else if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
+		if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N) {
+			btenable = 1;
+		}
 		if (rwnx_send_dbg_mem_read_req(sdiodev, mem_addr, &rd_mem_addr_cfm)){
 			return -1;
 		}
@@ -2181,6 +2190,15 @@ int aicbsp_driver_fw_init(struct aic_sdio_dev *sdiodev)
 	}
 
 	AICWFDBG(LOGINFO, "aicbsp: %s, chip rev: %d\n", __func__, aicbsp_info.chip_rev);
+
+	if(sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		sdiodev->chipid == PRODUCT_ID_AIC8800D80WN){
+		ret = aicwf_plat_cinit_exec_8800d80n(sdiodev);
+		if (ret) {
+			AICWFDBG(LOGERROR, "plat_cinit_exec fail: %d\n", ret);
+			return ret;
+		}
+	}
 
 	#ifndef CONFIG_MCU_MESSAGE
 	if (testmode != 4) {
@@ -2206,6 +2224,7 @@ int aicwf_sdio_aicbsp_get_feature(struct aicbsp_feature_t *feature, char *fw_pat
 	    feature->sdio_clock = FEATURE_SDIO_CLOCK;
 	}else if (aicbsp_sdiodev->chipid == PRODUCT_ID_AIC8800D80 ||
 		aicbsp_sdiodev->chipid == PRODUCT_ID_AIC8800D80N ||
+		aicbsp_sdiodev->chipid == PRODUCT_ID_AIC8800D80WN ||
 		aicbsp_sdiodev->chipid == PRODUCT_ID_AIC8800D80X2){
         feature->sdio_clock = FEATURE_SDIO_CLOCK_V3;
 	}

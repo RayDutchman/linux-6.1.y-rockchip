@@ -29,6 +29,7 @@ u32 syscfg_tbl_masked_8800d80n[][3] = {
 u32 patch_tbl_wifisetting_8800d80n[][2] =
 {
     //{0x00b8, 0x00009d08 | (0x01U << 13)}, // debug_mask, bit13: CALIB_BIT
+    {0x170, 0x50000001}, //gpio_wakeup_en
 };
 
 //adap test
@@ -73,7 +74,7 @@ int rwnx_plat_bin_fw_upload_2_with_version(struct aic_sdio_dev *rwnx_hw, u32 fw_
         for (char_idx = 0; char_idx < version_size; char_idx++) {
             version_str[char_idx] = bin_str[char_idx];
             if (bin_str[char_idx] == '\0') {
-                break;
+                //break;
             }
         }
         if (char_idx == version_size) {
@@ -221,7 +222,7 @@ int aicwf_plat_patch_table_load_8800d80n(struct aic_sdio_dev *rwnx_hw)
 extern int adap_test;
 void aicwf_patch_config_8800d80n(struct aic_sdio_dev *rwnx_hw)
 {
-    #ifdef CONFIG_ROM_PATCH_EN
+    #if 1 //def CONFIG_ROM_PATCH_EN
     int ret = 0;
     int cnt = 0;
 

@@ -9,6 +9,53 @@ struct aicbt_patch_table {
 	struct aicbt_patch_table *next;
 };
 
+typedef struct
+{
+    int8_t enable;
+    int8_t dsss;
+    int8_t ofdmlowrate_2g4;
+    int8_t ofdm64qam_2g4;
+    int8_t ofdm256qam_2g4;
+    int8_t ofdm1024qam_2g4;
+    int8_t ofdmlowrate_5g;
+    int8_t ofdm64qam_5g;
+    int8_t ofdm256qam_5g;
+    int8_t ofdm1024qam_5g;
+} txpwr_idx_conf_t;
+
+
+typedef struct
+{
+    int8_t enable;
+    int8_t chan_1_4;
+    int8_t chan_5_9;
+    int8_t chan_10_13;
+    int8_t chan_36_64;
+    int8_t chan_100_120;
+    int8_t chan_122_140;
+    int8_t chan_142_165;
+} txpwr_ofst_conf_t;
+
+typedef struct
+{
+    int8_t enable;
+    int8_t xtal_cap;
+    int8_t xtal_cap_fine;
+} xtal_cap_conf_t;
+
+u32 aic_crc32(u8 *p, u32 len, u32 crc);
+void aicwf_usb_get_fw_path(char* fw_path);
+void aicwf_usb_set_testmode(int val);
+int aicwf_usb_get_testmode(void);
+int aicwf_usb_get_hardware_info(void);
+int aicwf_usb_get_adap_test(void);
+int aicwf_usb_get_flash_bin_size(void);
+u32 aicwf_usb_get_flash_bin_crc(void);
+void aicwf_usb_get_userconfig_xtal_cap(xtal_cap_conf_t *xtal_cap);
+void aicwf_usb_get_userconfig_txpwr_idx(txpwr_idx_conf_t *txpwr_idx);
+void aicwf_usb_get_userconfig_txpwr_ofst(txpwr_ofst_conf_t *txpwr_ofst);
+void rwnx_plat_userconfig_set_value(char *command, char *value);
+void rwnx_plat_userconfig_parsing(char *buffer, int size);
 
 int aic_bt_platform_init(struct aic_usb_dev *sdiodev);
 
