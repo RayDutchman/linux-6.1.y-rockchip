@@ -902,6 +902,11 @@ struct rwnx_hw {
 	s8 pwrloss_lvl;
 	u8 sta_rssi_idx;
 #endif
+#ifdef CONFIG_TEMP_CONTROL
+	struct timer_list tc_timer;
+	struct work_struct tc_work;
+	s8 tc_range;
+#endif
 #endif
 #ifdef CONFIG_BAND_STEERING
 	u8_l iface_idx;

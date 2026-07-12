@@ -46,6 +46,25 @@ struct rwnx_sta *rwnx_retrieve_sta(struct rwnx_hw *rwnx_hw,
                                           __le16 fc, bool ap);
 
 
+#ifdef CONFIG_TEMP_CONTROL
+#define TEMP_GET_INTERVAL                (10 * 1000)    //time interval
+#define TEMP_THD_0                       (110)           //℃
+#define TEMP_THD_1                       (95)          //℃
+#define TEMP_THD_2                       (85)          //℃
+
+#define TC_LOSS_LVL0                     (-10)        //TEMP >= TEMP_THD_0
+#define TC_LOSS_LVL1                     (-5)         //TEMP_THD_1 < TEMP <= TEMP_THD_0
+#define TC_LOSS_LVL2                     (-2)         //TEMP_THD_2 < TEMP <= TEMP_THD_1
+#define TC_LOSS_LVL3                     (0)          //TEMP <= TEMP_THD_2
+
+void aicwf_tcloss_worker(struct work_struct *work);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+void aicwf_tcloss_timer(ulong data);
+#else
+void aicwf_tcloss_timer(struct timer_list *t);
+#endif
+#endif
+
 #ifdef CONFIG_BAND_STEERING
 void aicwf_steering_work(struct work_struct *work);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)

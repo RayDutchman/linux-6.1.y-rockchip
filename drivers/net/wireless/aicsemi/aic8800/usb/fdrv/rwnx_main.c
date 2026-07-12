@@ -553,6 +553,10 @@ module_param(aicwf_dbg_level, int, 0660);
 int dynamic_pwr = 1;
 module_param(dynamic_pwr, int, 0660);
 #endif
+#ifdef CONFIG_TEMP_CONTROL
+int temp_control = 1;
+module_param(temp_control, int, 0660);
+#endif
 
 int testmode = 0;
 char aic_fw_path[200];
@@ -2313,6 +2317,76 @@ static void aicwf_pwrloss_timer(struct timer_list *t)
 	return;
 
 }
+#endif
+#ifdef CONFIG_TEMP_CONTROL
+void aicwf_tcloss_worker(struct work_struct *work)
+{
+	struct rwnx_hw *rwnx_hw;
+	s8_l t;
+	s8_l temp = 0;
+	int ret = 0;
+
+	rwnx_hw = container_of(work, struct rwnx_hw, tc_work);
+	if (!temp_control) {
+		if (rwnx_hw->tc_range != 0) {
+			set_txpwrloss_ctrl(rwnx_hw, 0);
+		}
+		mod_timer(&rwnx_hw->tc_timer, jiffies + msecs_to_jiffies(TEMP_GET_INTERVAL));
+		return;
+	}
+	ret = rwnx_send_get_temp_req(rwnx_hw, &temp);
+		if(ret < 0) {
+			AICWFDBG(LOGINFO, "rwnx_send_get_temp_req: %d\n", ret);
+			return;
+		}
+	AICWFDBG(LOGINFO, "%s: temp :%d range : %d\n", __func__, temp, rwnx_hw->tc_range);
+	if(temp > TEMP_THD_0) {
+		if (rwnx_hw->tc_range != TC_LOSS_LVL0) {
+			set_txpwrloss_ctrl(rwnx_hw, TC_LOSS_LVL0);
+			rwnx_hw->tc_range = TC_LOSS_LVL0;
+		}
+	} else if ((temp > TEMP_THD_1) && (temp <= TEMP_THD_0)) {
+		if (rwnx_hw->tc_range != TC_LOSS_LVL1) {
+			set_txpwrloss_ctrl(rwnx_hw, TC_LOSS_LVL1);
+			rwnx_hw->tc_range = TC_LOSS_LVL1;
+		}
+	} else if ((temp > TEMP_THD_2) && (temp <= TEMP_THD_1)) {
+		if (rwnx_hw->tc_range != TC_LOSS_LVL2) {
+			set_txpwrloss_ctrl(rwnx_hw, TC_LOSS_LVL2);
+			rwnx_hw->tc_range = TC_LOSS_LVL2;
+		}
+	} else if (temp <= TEMP_THD_2) {
+		if (rwnx_hw->tc_range != TC_LOSS_LVL3) {
+			set_txpwrloss_ctrl(rwnx_hw, TC_LOSS_LVL3);
+			rwnx_hw->tc_range = TC_LOSS_LVL3;
+		}
+	}
+	mod_timer(&rwnx_hw->tc_timer, jiffies + msecs_to_jiffies(TEMP_GET_INTERVAL));
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+static void aicwf_tcloss_timer(ulong data)
+#else
+static void aicwf_tcloss_timer(struct timer_list *t)
+#endif
+{
+	struct rwnx_hw *rwnx_hw;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	struct rwnx_vif *rwnx_vif;
+	rwnx_vif = (struct rwnx_vif *)data;
+	rwnx_hw = rwnx_vif->rwnx_hw;
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 16, 0)
+	rwnx_hw = from_timer(rwnx_hw, t, tc_timer);
+#else
+	rwnx_hw =  timer_container_of(rwnx_hw, t, tc_timer);
+#endif
+	if (!work_pending(&rwnx_hw->tc_work))
+		schedule_work(&rwnx_hw->tc_work);
+	return;
+
+}
+
 #endif
 
 /*********************************************************************
@@ -9150,6 +9224,19 @@ if((g_rwnx_plat->usbdev->chipid == PRODUCT_ID_AIC8801) ||
 		mod_timer(&rwnx_hw->pwrloss_timer, jiffies + msecs_to_jiffies(RSSI_GET_INTERVAL));
 #endif
 
+#ifdef CONFIG_TEMP_CONTROL
+		rwnx_hw->tc_range = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+		init_timer(&rwnx_hw->tc_timer);
+		rwnx_hw->tc_timer.data = (ulong) vif;
+		rwnx_hw->tc_timer.function = aicwf_tcloss_timer;
+#else
+		timer_setup(&rwnx_hw->tc_timer, aicwf_tcloss_timer, 0);
+#endif
+		INIT_WORK(&rwnx_hw->tc_work, aicwf_tcloss_worker);
+		mod_timer(&rwnx_hw->tc_timer, jiffies + msecs_to_jiffies(TEMP_GET_INTERVAL));
+#endif
+
 #ifdef CONFIG_DYNAMIC_PERPWR
 		rwnx_hw->pwrth.rssi_thd_0 = RSSI_THD_0;
 		rwnx_hw->pwrth.rssi_thd_1 = RSSI_THD_1;
@@ -9233,7 +9320,18 @@ void rwnx_cfg80211_deinit(struct rwnx_hw *rwnx_hw)
 	cancel_work_sync(&rwnx_hw->pwrloss_work);
 #endif
 
-    spin_lock_bh(&rwnx_hw->defrag_lock);
+#ifdef CONFIG_TEMP_CONTROL
+	if(timer_pending(&rwnx_hw->tc_timer)){
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
+		timer_delete_sync(&rwnx_hw->tc_timer);
+#else
+		del_timer_sync(&rwnx_hw->tc_timer);
+#endif
+	}
+	cancel_work_sync(&rwnx_hw->tc_work);
+#endif
+
+	   spin_lock_bh(&rwnx_hw->defrag_lock);
     if (!list_empty(&rwnx_hw->defrag_list)) {
         list_for_each_entry(defrag_ctrl, &rwnx_hw->defrag_list, list) {
             list_del_init(&defrag_ctrl->list);
