@@ -108,14 +108,14 @@
 	gpio_leds: gpio-leds {
 		compatible = "gpio-leds";
 
-		led_green_power: led-blue-power {
+		led_green_power: power-led {
 			color = <LED_COLOR_ID_GREEN>;
 			function = LED_FUNCTION_POWER;
 			gpios = <&gpio0 RK_PB4 GPIO_ACTIVE_HIGH>;
 			linux,default-trigger = "default-on";
 		};
 
-		led_blue_user: led-green-user {
+		led_blue_user: user-led {
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_HEARTBEAT;
 			gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
@@ -439,6 +439,11 @@
 
 	tx_delay = <0x20>;
 	/* rx_delay = <0x3f>; */
+
+	snps,reset-gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	/* Reset time is 20ms, 100ms for rtl8211f */
+	snps,reset-delays-us = <0 20000 100000>;
 
 	status = "okay";
 };
@@ -1034,13 +1039,6 @@
 		clocks = <&cru REFCLKO25M_GMAC0_OUT>;
 		compatible = "ethernet-phy-id001c.c916";
 		reg = <0x1>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&rgmii_phy0_rst_l>;
-
-		/* Reset time is 20ms, 100ms for rtl8211f */
-		reset-assert-us = <20000>;
-		reset-deassert-us = <100000>;
-		reset-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
 	};
 };
 
@@ -1088,12 +1086,6 @@
 };
 
 &pinctrl {
-	ethernet {
-		rgmii_phy0_rst_l: rgmii-phy0-rst-l {
-			rockchip,pins = <2 RK_PB5 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
-
 	usb {
 		usb_host_pwren: usb-host-pwren {
 			rockchip,pins = <0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
