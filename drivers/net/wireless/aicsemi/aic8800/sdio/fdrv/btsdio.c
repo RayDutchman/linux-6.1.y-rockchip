@@ -43,6 +43,9 @@
 
 #include <net/bluetooth/hci_core.h>
 
+/* Forward declaration of LPM wake function (exported by aic8800_btlpm / lpm) */
+extern void bluesleep_outgoing_data(void);
+
 #define VERSION "0.1"
 #if CONFIG_BLUEDROID == 0
 struct btsdio_data {
@@ -205,6 +208,9 @@ static int btsdio_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 	struct btsdio_data *data = hci_get_drvdata(hdev);
 
 	AICBT_INFO("%s,%s", hdev->name,__func__);
+
+	/* Wake up the BT chip before sending data (LPM protocol) */
+	bluesleep_outgoing_data();
 
 	switch (hci_skb_pkt_type(skb)) {
 	case HCI_COMMAND_PKT:

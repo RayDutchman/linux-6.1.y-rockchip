@@ -5,7 +5,7 @@ $(MODULE_NAME)-y += aic8800_btlpm.o
 
 ccflags-y += -I$(srctree)/drivers/net/wireless/aicsemi/aic8800/sdio//bsp
 
-CONFIG_SUPPORT_LPM ?= n
+CONFIG_SUPPORT_LPM ?= y
 CONFIG_AUTO_PM ?= n
 
 aic8800_btlpm-y := \

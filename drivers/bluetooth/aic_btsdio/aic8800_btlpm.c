@@ -71,7 +71,7 @@
 #define DEFAULT_UART_INDEX   1
 #define BT_BLUEDROID_SUPPORT 1
 static int bluesleep_start(void);
-static void bluesleep_stop(void);
+static void __maybe_unused bluesleep_stop(void);
 
 struct bluesleep_info {
 	unsigned int wakeup_enable;
@@ -120,9 +120,7 @@ static bool has_lpm_enabled;
 static struct hci_dev *bluesleep_hdev;
 #endif
 
-#if BT_BLUEDROID_SUPPORT
 static struct platform_device *bluesleep_uart_dev;
-#endif
 static struct bluesleep_info *bsi;
 
 /* module usage */
@@ -284,7 +282,7 @@ static void bluesleep_hostwake_task(unsigned long data)
  * Handles proper timer action when outgoing data is delivered to the
  * HCI line discipline. Sets BT_TXDATA.
  */
-static void bluesleep_outgoing_data(void)
+void bluesleep_outgoing_data(void)
 {
 	unsigned long irq_flags;
 	int power_on_uart = 0;
@@ -309,6 +307,7 @@ static void bluesleep_outgoing_data(void)
 	if (power_on_uart == 1)
 		hsuart_power(1);
 }
+EXPORT_SYMBOL(bluesleep_outgoing_data);
 
 #if BT_BLUEDROID_SUPPORT
 static struct uart_port *bluesleep_get_uart_port(void)
@@ -925,6 +924,12 @@ static int __init bluesleep_probe(struct platform_device *pdev)
 	wake_lock_init(&bsi->wake_lock, WAKE_LOCK_SUSPEND, "bluesleep");
 #endif
 	bsi->pdev = pdev;
+
+	/* On Linux/BlueZ, keep BT_WAKE asserted so the BT chip stays awake.
+	 * This means no sleep protocol (higher power consumption, reliable operation).
+	 * The BT chip will always be responsive to UART commands from BlueZ.
+	 */
+	gpio_set_value(bsi->ext_wake, bsi->ext_wake_assert);
 
 	return 0;
 
