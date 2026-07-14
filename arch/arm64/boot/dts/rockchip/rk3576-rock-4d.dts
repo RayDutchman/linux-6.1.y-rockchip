@@ -259,6 +259,51 @@
 	};
 
 	/*
+	 * TMI3112H:
+	 * PWM: 2.3Mhz
+	 * Input voltage range: 2.7V to 5.5V
+	 * Max output currency: 2A
+	 */
+	vcc_ufs_s0: regulator-vcc-ufs-s0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_ufs_s0";
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc5v0_sys_s5>;
+	};
+
+	/*
+	 * TMI3112H:
+	 * PWM: 2.3Mhz
+	 * Input voltage range: 2.7V to 5.5V
+	 * Max output currency: 2A
+	 */
+	vcc1v2_ufs_vccq_s0: regulator-vcc1v2-ufs-vccq-s0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc1v2_ufs_vccq_s0";
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		vin-supply = <&vcc5v0_sys_s5>;
+	};
+
+	/*
+	 * WNM2015-3 (PMOS) SOT-23-5L -20V -2.4A
+	 */
+	vcc1v8_ufs_vccq2_s0: vcc1v8-ufs-vccq2-s0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc1v8_ufs_vccq2_s0";
+		regulator-boot-on;
+		regulator-always-on;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&vcc_1v8_s3>;
+	};
+
+	/*
 	 * extend board
 	 */
 	vcc3v3_pcie: regulator-vcc3v3-pcie {
@@ -1337,8 +1382,11 @@
 };
 
 &ufs {
-	status = "okay";
 	reset-gpios = <&gpio4 RK_PD0 GPIO_ACTIVE_HIGH>;
+	vcc-supply = <&vcc_ufs_s0>;
+	vccq-supply = <&vcc1v2_ufs_vccq_s0>;
+	vccq2-supply = <&vcc1v8_ufs_vccq2_s0>;
+	status = "okay";
 };
 
 &usb_drd0_dwc3 {
