@@ -143,11 +143,15 @@ enum aicbsp_cpmode_type {
 #define AIC_HW_INFO 0x21
 
 #define FW_PATH_MAX 200
+#if defined(CONFIG_AIC_FW_PATH)
+static const char* aic_default_fw_path = CONFIG_AIC_FW_PATH;
+#else
 #if defined(CONFIG_PLATFORM_UBUNTU)
 static const char* aic_default_fw_path = "/lib/firmware";
 #else
 static const char* aic_default_fw_path = "/vendor/etc/firmware";
-#endif
+#endif //defined(CONFIG_PLATFORM_UBUNTU)
+#endif //defined(CONFIG_AIC_FW_PATH)
 char aic_fw_path[FW_PATH_MAX];
 module_param_string(aic_fw_path, aic_fw_path, FW_PATH_MAX, 0660);
 #ifdef CONFIG_M2D_OTA_AUTO_SUPPORT
@@ -305,7 +309,7 @@ static int aic_load_firmware(u32 ** fw_buf, const char *name, struct device *dev
     //u32 *src=NULL, *dst = NULL;
 	MD5_CTX md5;
 	unsigned char decrypt[16];
-#if defined(CONFIG_PLATFORM_UBUNTU)
+#if defined(CONFIG_PLATFORM_UBUNTU) && !defined(CONFIG_AIC_FW_PATH)
     struct aicwf_bus *bus_if = dev_get_drvdata(device);
     struct aic_usb_dev *usb_dev = bus_if->bus_priv.usb;
 #endif
@@ -321,7 +325,7 @@ static int aic_load_firmware(u32 ** fw_buf, const char *name, struct device *dev
 		printk("%s: use customer define fw_path\n", __func__);
 		len = snprintf(path, FW_PATH_MAX, "%s/%s", aic_fw_path, name);
     } else {
-    #if defined(CONFIG_PLATFORM_UBUNTU)
+    #if defined(CONFIG_PLATFORM_UBUNTU) && !defined(CONFIG_AIC_FW_PATH)
         if (usb_dev->chipid == PRODUCT_ID_AIC8800) {
             len = snprintf(path, FW_PATH_MAX, "%s/%s/%s",aic_default_fw_path, "aic8800", name);
         } else if (usb_dev->chipid == PRODUCT_ID_AIC8800D80) {
