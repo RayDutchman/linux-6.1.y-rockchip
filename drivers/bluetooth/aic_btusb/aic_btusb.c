@@ -4945,7 +4945,9 @@ static int bt_reboot_notify(struct notifier_block *notifier, ulong pm_event, voi
     struct btusb_data *data;
     firmware_info *fw_info;
     struct usb_device *udev;
+#ifdef CONFIG_BT_WAKEUP_IN_PM
     int ret = 0;
+#endif
     AICBT_INFO("%s: pm event %ld", __func__, pm_event);
 
     data = container_of(notifier, struct btusb_data, reboot_notifier);
