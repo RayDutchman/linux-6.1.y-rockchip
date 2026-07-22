@@ -1,18 +1,15 @@
 MODULE_NAME=aic8800_btsdio
 
 obj-$(CONFIG_AIC8800_BTSDIO_SUPPORT) = $(MODULE_NAME).o
-$(MODULE_NAME)-y += aic8800_btlpm.o
+
+# Directly include source objects (aic8800_btlpm.c removed, not needed on Rockchip)
+$(MODULE_NAME)-y := \
+	aic_bluetooth_main.o \
+	rfkill.o
 
 ccflags-y += -I$(srctree)/drivers/net/wireless/aicsemi/aic8800/sdio//bsp
 
-CONFIG_SUPPORT_LPM ?= y
 CONFIG_AUTO_PM ?= n
-
-aic8800_btlpm-y := \
-	aic_bluetooth_main.o \
-	rfkill.o \
-
-aic8800_btlpm-$(CONFIG_SUPPORT_LPM) += lpm.o
 
 ccflags-y += -DAIC_TRACE_INCLUDE_PATH=$(src)
 

@@ -5,7 +5,6 @@
 #include <linux/kernel.h>
 #include <linux/version.h>
 #include <linux/platform_device.h>
-#include "lpm.h"
 #include "rfkill.h"
 
 #define DRV_CONFIG_FW_NAME    "fw.bin"
@@ -48,16 +47,8 @@ static int __init aic_bluetooth_mod_init(void)
 		goto err1;
 	}
 
-	ret = bluesleep_init(aicbt_pdev);
-	if (ret) {
-		pr_err("bluesleep init fail\n");
-		goto err2;
-	}
-
 	return 0;
 
-err2:
-	rfkill_bluetooth_remove(aicbt_pdev);
 err1:
 	platform_device_del(aicbt_pdev);
     platform_device_put(aicbt_pdev);
@@ -69,7 +60,6 @@ err0:
 static void __exit aic_bluetooth_mod_exit(void)
 {
 	printk("%s\n", __func__);
-	bluesleep_exit(aicbt_pdev);
 	rfkill_bluetooth_remove(aicbt_pdev);
 	platform_device_del(aicbt_pdev);
     platform_device_put(aicbt_pdev);

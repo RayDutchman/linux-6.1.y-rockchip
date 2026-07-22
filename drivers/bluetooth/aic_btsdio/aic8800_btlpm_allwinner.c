@@ -1163,8 +1163,13 @@ static void __exit bluesleep_exit(void)
 	remove_proc_entry("bluetooth", 0);
 }
 
-module_init(bluesleep_init);
-module_exit(bluesleep_exit);
+/*
+ * On Rockchip/Linux platforms, bluesleep is NOT used.
+ * Rockchip RFKILL driver (net/rfkill/rfkill-bt.c) handles all BT GPIO/power
+ * via "bluetooth-platdata" DT. Do NOT register module_init here.
+ */
+//module_init(bluesleep_init);
+//module_exit(bluesleep_exit);
 
 MODULE_DESCRIPTION("Bluetooth Sleep Mode Driver ver %s " VERSION);
 #ifdef MODULE_LICENSE
