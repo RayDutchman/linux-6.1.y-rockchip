@@ -15,12 +15,20 @@
 #include <linux/gpio/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
+#include <linux/jiffies.h>
 #include <linux/device.h>
 
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 
 #include "hci_uart.h"
+
+#if IS_ENABLED(CONFIG_AIC8800_SDIO_WLAN)
+/* Provided by the aic8800 WiFi driver (aicbsp); true once the combo BT
+ * firmware has been loaded over SDIO.
+ */
+extern bool aicbsp_is_bt_fw_ready(void);
+#endif
 
 #define AIC_DEFAULT_BAUDRATE	115200
 
@@ -49,6 +57,15 @@ static int aic_receive_buf(struct serdev_device *serdev,
 			   const u8 *data, size_t count)
 {
 	struct aic_dev *adev = serdev_device_get_drvdata(serdev);
+
+	/* Per-frame RX dump is off by default (bt_dev_dbg); enable via
+	 * dynamic debug when needed:
+	 * echo 'file hci_aic8800.c +p' > /sys/kernel/debug/dynamic_debug/control
+	 */
+	if (adev && adev->hdev)
+		bt_dev_dbg(adev->hdev, "aic_receive_buf: count=%zu 0x%02x 0x%02x 0x%02x 0x%02x",
+			   count, data[0], count > 1 ? data[1] : 0,
+			   count > 2 ? data[2] : 0, count > 3 ? data[3] : 0);
 
 	adev->rx_skb = h4_recv_buf(adev->hdev, adev->rx_skb, data, (int)count,
 				   aic_recv_pkts, (int)ARRAY_SIZE(aic_recv_pkts));
@@ -79,19 +96,40 @@ static int aic_open(struct hci_dev *hdev)
 	struct aic_dev *adev = hci_get_drvdata(hdev);
 	int err;
 
-	if (adev->enable_gpio)
+	bt_dev_info(hdev, "aic_open: baudrate=%u post_delay=%u",
+		    adev->baudrate, adev->post_power_on_delay_ms);
+
+	/* Assert HOST_WAKE_BT before powering the chip on, matching the
+	 * vendor power sequence; the BT firmware samples it while booting.
+	 */
+	if (adev->device_wakeup_gpio) {
+		gpiod_set_value_cansleep(adev->device_wakeup_gpio, 1);
+		bt_dev_info(hdev, "aic_open: device_wakeup(HOST_WAKE_BT)=%d",
+			    gpiod_get_value_cansleep(adev->device_wakeup_gpio));
+	}
+
+	if (adev->enable_gpio) {
+		/* Power the BT core on. No low->high reset pulse here: the
+		 * combo BT firmware is loaded by the WiFi driver (aicbsp) and
+		 * a pulse would reset the core and drop the already-loaded
+		 * firmware on a reopen.
+		 */
 		gpiod_set_value_cansleep(adev->enable_gpio, 1);
+		bt_dev_info(hdev, "aic_open: enable(BT_REG_ON)=%d",
+			    gpiod_get_value_cansleep(adev->enable_gpio));
+	}
 
 	/* Allow the chip to power up and its clock to settle */
 	msleep(adev->post_power_on_delay_ms);
 
 	err = serdev_device_open(adev->serdev);
 	if (err) {
-		bt_dev_err(hdev, "Unable to open UART device");
+		bt_dev_err(hdev, "Unable to open UART device (%d)", err);
 		goto err_open;
 	}
 
-	serdev_device_set_baudrate(adev->serdev, adev->baudrate);
+	err = serdev_device_set_baudrate(adev->serdev, adev->baudrate);
+	bt_dev_info(hdev, "aic_open: set_baudrate ret=%d", err);
 	/* The AIC8800 BT firmware is configured (via the WiFi driver's
 	 * aicbt_patch_table_load) with flow control enabled (uart_flowctrl=1).
 	 * Keep hardware RTS/CTS flow control on, otherwise the chip never
@@ -99,8 +137,28 @@ static int aic_open(struct hci_dev *hdev)
 	 */
 	serdev_device_set_flow_control(adev->serdev, true);
 
-	if (adev->device_wakeup_gpio)
-		gpiod_set_value_cansleep(adev->device_wakeup_gpio, 1);
+#if IS_ENABLED(CONFIG_AIC8800_SDIO_WLAN)
+	/* The combo BT firmware is loaded by the WiFi driver over SDIO. If
+	 * hci0 is brought up (e.g. by an init script at boot) before that
+	 * load finishes, the HCI Reset races ahead of the firmware and times
+	 * out with -110. Wait here so the stack only sends Reset once the BT
+	 * core can actually answer.
+	 */
+	{
+		unsigned long timeout = jiffies + msecs_to_jiffies(8000);
+
+		while (!aicbsp_is_bt_fw_ready()) {
+			if (time_after(jiffies, timeout)) {
+				bt_dev_err(hdev,
+					   "aic_open: BT firmware not ready within 8s");
+				break;
+			}
+			msleep(50);
+		}
+		bt_dev_info(hdev, "aic_open: bt_fw_ready=%d",
+			    aicbsp_is_bt_fw_ready());
+	}
+#endif
 
 	return 0;
 
@@ -119,8 +177,10 @@ static int aic_close(struct hci_dev *hdev)
 
 	serdev_device_close(adev->serdev);
 
-	if (adev->enable_gpio)
-		gpiod_set_value_cansleep(adev->enable_gpio, 0);
+	/* Keep BT_REG_ON asserted: powering the combo BT core off would drop
+	 * the firmware loaded by the WiFi driver, so a later reopen would get
+	 * no HCI response (-110).
+	 */
 
 	return 0;
 }
@@ -128,10 +188,13 @@ static int aic_close(struct hci_dev *hdev)
 static int aic_send_frame(struct hci_dev *hdev, struct sk_buff *skb)
 {
 	struct aic_dev *adev = hci_get_drvdata(hdev);
+	int ret;
 
 	/* Prepend H4 packet type byte */
 	memcpy(skb_push(skb, 1), &hci_skb_pkt_type(skb), 1);
-	serdev_device_write_buf(adev->serdev, skb->data, skb->len);
+	ret = serdev_device_write_buf(adev->serdev, skb->data, skb->len);
+	bt_dev_dbg(hdev, "aic_send_frame: type=0x%02x len=%d ret=%d",
+		   skb->data[0], skb->len, ret);
 
 	hdev->stat.byte_tx += skb->len;
 	kfree_skb(skb);
