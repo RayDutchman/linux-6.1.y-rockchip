@@ -8,6 +8,7 @@
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/input/rk-input.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/pinctrl/rockchip.h>
@@ -279,27 +280,6 @@
 		status = "okay";
 	};
 
-	wireless-bluetooth {
-		compatible = "bluetooth-platdata";
-		uart_rts_gpios = <&gpio1 RK_PB2 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default", "rts_gpio";
-		pinctrl-0 = <&uart2m1_rtsn>;
-		pinctrl-1 = <&uart2_gpios>;
-		BT,power_gpio = <&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>; //BT_REG_ON
-		BT,wake_host_irq = <&gpio1 RK_PC2 GPIO_ACTIVE_HIGH>; //BT_WAKE_HOST
-		BT,wake_gpio = <&gpio1 RK_PC0 GPIO_ACTIVE_HIGH>; //HOST_WAKE_BT
-		status = "okay";
-	};
-
-	wireless-wlan {
-		compatible = "wlan-platdata";
-		rockchip,grf = <&grf>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_wake_host_irq>;
-		wifi_chip_type = "aic8800";
-		WIFI,host_wake_irq = <&gpio1 RK_PA7 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-	};
 };
 
 &avsd {
@@ -534,36 +514,30 @@
 		};
 	};
 
-	uart-bluetooth {
-		uart2_gpios: uart2-gpios {
-			/* UART2_RTS as GPIO, for BT power sequencing */
-			rockchip,pins = <1 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-	};
 };
 
 &pwm0 {
-	pinctrl = <&pwm0m0_pins>;
+	pinctrl-0 = <&pwm0m0_pins>;
 	status = "okay";
 };
 
 &pwm1 {
-	pinctrl = <&pwm1m0_pins>;
+	pinctrl-0 = <&pwm1m0_pins>;
 	status = "okay";
 };
 
 &pwm2 {
-	pinctrl = <&pwm2m0_pins>;
+	pinctrl-0 = <&pwm2m0_pins>;
 	status = "okay";
 };
 
 &pwm4 {
-	pinctrl = <&pwm4m0_pins>;
+	pinctrl-0 = <&pwm4m0_pins>;
 	status = "okay";
 };
 
 &pwm5 {
-	pinctrl = <&pwm5m0_pins>;
+	pinctrl-0 = <&pwm5m0_pins>;
 	status = "okay";
 };
 
@@ -617,6 +591,8 @@
 };
 
 &sdio0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	max-frequency = <150000000>;
 	no-sd;
 	no-mmc;
@@ -629,8 +605,19 @@
 	non-removable;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdio0_bus4 &sdio0_clk &sdio0_cmd>;
+	sd-uhs-sdr50;
 	sd-uhs-sdr104;
 	status = "okay";
+
+	wifi@1 {
+		compatible = "aic,aic8800-sdio";
+		reg = <1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_wake_host_irq>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <RK_PA7 IRQ_TYPE_LEVEL_HIGH>; /* WIFI_WAKE_HOST */
+		interrupt-names = "host-wake";
+	};
 };
 
 &tsadc {
@@ -693,7 +680,19 @@
 &uart2 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart2m1_xfer &uart2m1_ctsn>;
+	/* RTS is required for hardware flow control; the AIC8800 BT firmware
+	 * is configured with flow control enabled (uart_flowctrl=1).
+	 */
+	pinctrl-0 = <&uart2m1_xfer &uart2m1_ctsn &uart2m1_rtsn>;
+
+	bluetooth {
+		compatible = "aic,aic8800-bt";
+		enable-gpios = <&gpio1 RK_PC1 GPIO_ACTIVE_HIGH>;       /* BT_REG_ON */
+		device-wakeup-gpios = <&gpio1 RK_PC0 GPIO_ACTIVE_HIGH>; /* HOST_WAKE_BT */
+		host-wakeup-gpios = <&gpio1 RK_PC2 GPIO_ACTIVE_HIGH>;   /* BT_WAKE_HOST */
+		max-speed = <1500000>;
+		post-power-on-delay-ms = <100>;
+	};
 };
 
 &wdt {
