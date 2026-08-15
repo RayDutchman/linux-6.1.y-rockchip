@@ -9,6 +9,7 @@
 #include "rv1126b.dtsi"
 #include <dt-bindings/display/drm_mipi_dsi.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/pwm/pwm.h>
 #include "rv1126b-aoa.dtsi"
@@ -228,28 +229,6 @@
 		pwm-supply = <&vcc5v0_sys>;
 	};
 
-	wireless-bluetooth {
-		compatible = "bluetooth-platdata";
-		uart_rts_gpios = <&gpio3 RK_PA6 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default", "rts_gpio";
-		pinctrl-0 = <&uart2m0_rtsn_pins>;
-		pinctrl-1 = <&uart2_gpios>;
-		BT,power_gpio = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;
-		BT,wake_host_irq = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;
-		BT,wake_gpio = <&gpio3 RK_PB6 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-	};
-
-	wireless-wlan {
-		compatible = "wlan-platdata";
-		rockchip,grf = <&grf>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_wake_host>;
-		wifi_chip_type = "aic8800";
-		WIFI,host_wake_irq = <&gpio3 RK_PB3 GPIO_ACTIVE_HIGH>;
-		WIFI,poweren_gpio = <&gpio3 RK_PB2 GPIO_ACTIVE_HIGH>;
-		status = "okay";
-	};
 };
 
 /* speak */
@@ -1003,10 +982,6 @@
 			rockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		uart2_gpios: uart2-gpios {
-			rockchip,pins = <3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
-
 		wifi_wake_host: wifi-wake-host {
 			rockchip,pins = <3 RK_PB3 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
@@ -1248,8 +1223,8 @@
 };
 
 &sdmmc1 {
-	//#address-cells = <1>;
-	//#size-cells = <0>;
+	#address-cells = <1>;
+	#size-cells = <0>;
 	bus-width = <4>;
 	cap-sdio-irq;
 	no-sd;
@@ -1274,18 +1249,15 @@
 	power-on-delay-us = <10000>;
 	status = "okay";
 
-//	wifi@1 {
-//		compatible = "brcm,bcm4329-fmac";
-//		reg = <1>;
-//
- //		/* WIFI,host_wake_irq */
-//		interrupt-parent = <&gpio3>;
-//		interrupts = <RK_PB3 IRQ_TYPE_LEVEL_HIGH>;
-//		interrupt-names = "host-wake";
-//
-//		pinctrl-names = "default";
-//		pinctrl-0 = <&wifi_wake_host_h>;
-//	};
+	wifi@1 {
+		compatible = "aic,aic8800-sdio";
+		reg = <1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_wake_host>;
+		interrupt-parent = <&gpio3>;
+		interrupts = <RK_PB3 IRQ_TYPE_LEVEL_HIGH>; /* WIFI_WAKE_HOST */
+		interrupt-names = "host-wake";
+	};
 };
 
 &tsadc {
@@ -1302,35 +1274,20 @@
 &uart2 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart2m0_xfer_pins &uart2m0_ctsn_pins>;
-	//uart-has-rtscts;
+	/* RTS is required for hardware flow control; the AIC8800 BT firmware
+	 * is configured with flow control enabled (uart_flowctrl=1).
+	 */
+	pinctrl-0 = <&uart2m0_xfer_pins &uart2m0_ctsn_pins &uart2m0_rtsn_pins>;
 
 	
-//	bluetooth: bluetooth {
-//		compatible = "brcm,bcm43438-bt";
-//		max-speed = <1500000>;
-//
-//		/* bt_wake_host */
-//		interrupt-parent = <&gpio3>;
-//		interrupts = <RK_PB7 IRQ_TYPE_LEVEL_HIGH>;
-//		interrupt-names = "host-wakeup";
-//
-//		/* host_wake_bt */
-//		device-wake-gpios = <&gpio3 RK_PB6 GPIO_ACTIVE_HIGH>;
-//	
-//		/* bt_reg_on */
-//		shutdown-gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;
-//
-//		pinctrl-names = "default";
-//		pinctrl-0 = <&bt_power_en_h &bt_wake_host_h &bt_wake_h>;
-//
-//		/* 硬件流控切换引脚 (用于唤醒流程) */
-//		//rts-gpios = <&gpio3 RK_PA6 GPIO_ACTIVE_LOW>;
-//
-//		/* 电源管理 */
-//		vbat-supply = <&vcc_3v3>; /* 假设主电源为3.3V */
-//		vddio-supply = <&vcc_1v8>; /* 假设IO电源为1.8V */
-//	};
+	bluetooth {
+		compatible = "aic,aic8800-bt";
+		enable-gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_HIGH>;       /* BT_REG_ON */
+		device-wakeup-gpios = <&gpio3 RK_PB6 GPIO_ACTIVE_HIGH>; /* HOST_WAKE_BT */
+		host-wakeup-gpios = <&gpio3 RK_PB7 GPIO_ACTIVE_HIGH>;   /* BT_WAKE_HOST */
+		max-speed = <1500000>;
+		post-power-on-delay-ms = <100>;
+	};
 };
 
 &usb2phy {
