@@ -3,8 +3,8 @@
 # Makefile for the Linux Bluetooth HCI device drivers.
 #
 
-obj-$(CONFIG_AIC8800_BTSDIO_SUPPORT) += aic_btsdio/
 obj-$(CONFIG_AIC8800_BTUSB_SUPPORT) += aic_btusb/
+obj-$(CONFIG_BT_HCIAIC)		+= hci_aic8800.o
 
 obj-$(CONFIG_BT_HCIVHCI)	+= hci_vhci.o
 obj-$(CONFIG_BT_HCIUART)	+= hci_uart.o

@@ -1,5 +1,0 @@
-config AIC8800_BTSDIO_SUPPORT
-	tristate "AIC8800 SDIO bluetooth Support"
-	depends on MMC
-	help
-	  This is support for aic sdio bluetooh driver.

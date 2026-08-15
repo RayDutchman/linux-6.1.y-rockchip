@@ -1069,7 +1069,7 @@ s8_l get_txpwr_max(s8_l power)
 	    }
 	}
 
-	printk("%s:txpwr_max:%d \r\n",__func__,power);
+	AICWFDBG(LOGINFO, "%s:txpwr_max:%d \r\n", __func__, power);
 	return power;
 }
 
@@ -1128,7 +1128,7 @@ void set_txpwr_loss_ofst(s8_l value)
 			userconfig_info.txpwr_lvl_v2.pwrlvl_11ax_2g4[i] += value;
 	    }
 	}
-	printk("%s:value:%d\r\n", __func__, value);
+	AICWFDBG(LOGINFO, "%s:value:%d\r\n", __func__, value);
 }
 
 

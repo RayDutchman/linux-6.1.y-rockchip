@@ -12,6 +12,9 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
+#include <linux/of.h>
+#include <linux/of_irq.h>
+#include <linux/ratelimit.h>
 #include <linux/semaphore.h>
 #include <linux/debugfs.h>
 #include <linux/kthread.h>
@@ -624,7 +627,31 @@ static int rwnx_register_hostwake_irq(struct device *dev)
             wakeup_enable = 1;
 #endif //CONFIG_PLATFORM_ROCKCHIP
 
+	/* Mainline/DT path: fetch the WiFi OOB wakeup IRQ from the
+	 * "aic,aic8800-sdio" node (wifi@1 child of the SDIO controller).
+	 */
+#if !defined(CONFIG_PLATFORM_ROCKCHIP) && !defined(CONFIG_PLATFORM_ROCKCHIP2) && \
+	!defined(CONFIG_PLATFORM_ALLWINNER)
+	{
+		struct device_node *wifi_np = NULL;
+		int irq;
 
+		if (dev && dev->of_node &&
+		    of_device_is_compatible(dev->of_node, "aic,aic8800-sdio"))
+			wifi_np = of_node_get(dev->of_node);
+		if (!wifi_np)
+			wifi_np = of_find_compatible_node(NULL, NULL,
+							 "aic,aic8800-sdio");
+		if (wifi_np) {
+			irq = of_irq_get(wifi_np, 0);
+			if (irq > 0) {
+				hostwake_irq_num = irq;
+				wakeup_enable = 1;
+			}
+			of_node_put(wifi_np);
+		}
+	}
+#endif
 
 	if (wakeup_enable) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)
@@ -2881,7 +2908,8 @@ void aicwf_sdio_hal_irqhandler(struct sdio_func *func)
 
 #ifdef CONFIG_PREALLOC_RX_SKB
 	if (list_empty(&aic_rx_buff_list.rxbuff_list)) {
-		printk("%s %d, rxbuff list is empty\n", __func__, __LINE__);
+		printk_ratelimited(KERN_DEBUG "%s %d, rxbuff list is empty\n",
+				   __func__, __LINE__);
 		rwnx_wakeup_unlock(sdiodev->rwnx_hw->ws_irqrx);
 		return;
 	}
