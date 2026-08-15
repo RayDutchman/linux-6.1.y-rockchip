@@ -1246,7 +1246,6 @@
 	sd-uhs-sdr50;
 	sd-uhs-ddr50;
 	sd-uhs-sdr104;
-	power-on-delay-us = <10000>;
 	status = "okay";
 
 	wifi@1 {
@@ -1273,6 +1272,7 @@
 /* AIC8800 Bluetooth */
 &uart2 {
 	status = "okay";
+
 	pinctrl-names = "default";
 	/* RTS is required for hardware flow control; the AIC8800 BT firmware
 	 * is configured with flow control enabled (uart_flowctrl=1).
