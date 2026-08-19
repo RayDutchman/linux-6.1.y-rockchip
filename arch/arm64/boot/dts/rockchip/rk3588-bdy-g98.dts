@@ -418,15 +418,22 @@
 	 * RTL8125 endpoint (0002:21:00.0). A flat pcie@0,0 carrying the
 	 * properties directly here would be claimed by the root port
 	 * instead, because of_pci_find_child_device() matches by devfn only.
+	 *
+	 * The bus number encoded in reg (bits 16-23) must lie within the
+	 * host bridge's bus-range, otherwise dtc's pci_device_bus_num
+	 * check fires: pcie2x1l0 owns buses 0x20-0x2f, so the root port
+	 * is 0002:20:00.0 and the endpoint below sits on bus 0x21.
 	 */
 	pcie@0,0 {
-		reg = <0x0000 0 0 0 0>;
+		reg = <0x00200000 0 0 0 0>;
 		#address-cells = <3>;
 		#size-cells = <2>;
+		bus-range = <0x20 0x2f>;
+		device_type = "pci";
 		ranges;
 
 		ethernet@0,0 {
-			reg = <0x0000 0 0 0 0>;
+			reg = <0x00210000 0 0 0 0>;
 			r8125,led0 = <0x22b>;
 			r8125,led1 = <0x22b>;
 			r8125,led2 = <0x22b>;
@@ -447,13 +454,15 @@
 
 	/* Same blank-EEPROM LED fix as pcie2x1l0 (endpoint 0003:31:00.0) */
 	pcie@0,0 {
-		reg = <0x0000 0 0 0 0>;
+		reg = <0x00300000 0 0 0 0>;
 		#address-cells = <3>;
 		#size-cells = <2>;
+		bus-range = <0x30 0x3f>;
+		device_type = "pci";
 		ranges;
 
 		ethernet@0,0 {
-			reg = <0x0000 0 0 0 0>;
+			reg = <0x00310000 0 0 0 0>;
 			r8125,led0 = <0x22b>;
 			r8125,led1 = <0x22b>;
 			r8125,led2 = <0x22b>;
