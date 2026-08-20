@@ -208,6 +208,36 @@
 		status = "okay";
 	};
 
+	skykirin_led: skykirin-led {
+		compatible = "skykirin-ht1628";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ht1628_pins>;
+		spi_cs = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+		spi_clk = <&gpio4 RK_PA4 GPIO_ACTIVE_HIGH>;
+		spi_data = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	gpio_leds: gpio-leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&ir_led &pwr_green_led>;
+
+		ir {
+			gpios = <&gpio4 RK_PB7 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
+			default-state = "on";
+		};
+
+		pwr-green {
+			gpios = <&gpio4 RK_PC1 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
+			default-state = "off";
+			retain-state-suspended;
+			retain-state-shutdown;
+		};
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		pinctrl-names = "default";
@@ -680,6 +710,24 @@
 	hym8563-irq {
 		rtc_irq: rtc-irq {
 			rockchip,pins = <4 RK_PB2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	skykirin-led {
+		ht1628_pins: ht1628-pins {
+			rockchip,pins = <4 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>,
+					<4 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>,
+					<4 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	gpio-leds {
+		ir_led: ir-led {
+			rockchip,pins = <4 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		pwr_green_led: pwr-green-led {
+			rockchip,pins = <4 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
