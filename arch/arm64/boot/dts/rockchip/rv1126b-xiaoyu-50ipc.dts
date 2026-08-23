@@ -1237,7 +1237,6 @@
 	mmc-pwrseq = <&sdio_pwrseq>;
 	vmmc-supply = <&vcc_3v3>;
 	vqmmc-supply = <&vcc_1v8>;
-	cap-power-off-card;
 	broken-cd;
 	disable-wp;
 	no-detect-power-loss;
