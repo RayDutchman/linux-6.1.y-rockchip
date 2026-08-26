@@ -393,6 +393,19 @@ config VIDEO_GC4663
 	  To compile this driver as a module, choose M here: the
 	  module will be called gc4663.
 
+config VIDEO_GC4683
+	tristate "GalaxyCore GC4683 sensor support"
+	depends on I2C && VIDEO_DEV
+	depends on MEDIA_CAMERA_SUPPORT
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  Support for the GalaxyCore GC4683 sensor.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called gc4683.
+
 config VIDEO_GC4C33
 	tristate "GalaxyCore GC4C33 sensor support"
 	depends on I2C && VIDEO_DEV
@@ -483,6 +496,26 @@ config VIDEO_GC8613
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called GC8613.
+
+config VIDEO_GH2DPK
+	tristate "clx gh2dpk a0 sensor support"
+	depends on I2C && VIDEO_DEV
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the clx gh2dpk camera.
+	  2-megapixel HDR sensor and a professional ISP (Image Signal Processor) image processing chip.
+	  It outputs a 30fps HDR high-quality video stream via a 2-lane MIPI interface.
+
+config VIDEO_GST412C
+	tristate "Global Sensor GST412C sensor support"
+	depends on VIDEO_DEV && I2C
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for gst412c.
 
 config VIDEO_HI556
 	tristate "Hynix Hi-556 sensor support"
@@ -888,6 +921,19 @@ config VIDEO_IMX766
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called imx766.
+
+config VIDEO_IMX900
+	tristate "Sony IMX900 sensor support"
+	depends on I2C && VIDEO_DEV
+	depends on MEDIA_CAMERA_SUPPORT
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	help
+	  This is a Video4Linux2 sensor driver for the Sony
+	  IMX900 camera.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called imx900.
 
 config VIDEO_JX_F37
 	tristate "Soi JX_F37 sensor support"
@@ -1417,6 +1463,21 @@ config VIDEO_OV2740
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ov2740.
+
+config VIDEO_OV32B40
+	tristate "OmniVision OV32B40 sensor support"
+	depends on I2C && VIDEO_DEV
+	depends on MEDIA_CAMERA_SUPPORT
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	select VIDEO_OTP_EEPROM
+	help
+	  This is a Video4Linux2 sensor driver for the Omnivision
+	  OV32B40 camera sensor with a MIPI CSI-2 interface.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ov32b40.
 
 config VIDEO_OV4686
 	tristate "OmniVision OV4686 sensor support"
@@ -2112,6 +2173,16 @@ config VIDEO_SC430CS
 	  This is a Video4Linux2 sensor driver for the SmartSens
 	  SC430CS camera.
 
+config VIDEO_SC431HAI
+	tristate "SmartSens SC431HAI sensor support"
+	depends on I2C && VIDEO_DEV
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens
+	  SC431HAI camera.
+
 config VIDEO_SC4336
 	tristate "SmartSens SC4336 sensor support"
 	depends on I2C && VIDEO_DEV
@@ -2132,6 +2203,16 @@ config VIDEO_SC4336P
 	  This is a Video4Linux2 sensor driver for the SmartSens
 	  SC4336P camera.
 
+config VIDEO_SC438HAI
+	tristate "SmartSens SC438HAI sensor support"
+	depends on I2C && VIDEO_DEV
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens
+	  sc438hai camera.
+
 config VIDEO_SC450AI
 	tristate "SmartSens SC450AI sensor support"
 	depends on I2C && VIDEO_DEV
@@ -2141,6 +2222,16 @@ config VIDEO_SC450AI
 	help
 	  This is a Video4Linux2 sensor driver for the SmartSens
 	  SC450ai camera.
+
+config VIDEO_SC465SL
+	tristate "SmartSens SC465SL sensor support"
+	depends on I2C && VIDEO_DEV
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens
+	  sc465sl camera.
 
 config VIDEO_SC485SL
 	tristate "SmartSens SC485SL sensor support"
@@ -2201,6 +2292,16 @@ config VIDEO_SC635HAI
 	help
 	  This is a Video4Linux2 sensor driver for the SmartSens
 	  SC635HAI camera.
+
+config VIDEO_SC8238
+	tristate "SmartSens SC8238 sensor support"
+	depends on I2C && VIDEO_DEV
+	select MEDIA_CONTROLLER
+	select VIDEO_V4L2_SUBDEV_API
+	select V4L2_FWNODE
+	help
+	  This is a Video4Linux2 sensor driver for the SmartSens
+	  SC8238 camera.
 
 config VIDEO_SC830AI
 	tristate "SmartSens SC830AI sensor support"

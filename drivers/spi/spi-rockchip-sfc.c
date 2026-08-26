@@ -26,6 +26,7 @@
 #include <linux/slab.h>
 #include <linux/spi/spi-mem.h>
 #include <linux/of_gpio.h>
+#include <linux/soc/rockchip/rockchip_thunderboot.h>
 
 /* System control */
 #define SFC_CTRL			0x0
@@ -333,7 +334,7 @@ static void rockchip_sfc_irq_mask(struct rockchip_sfc *sfc, u32 mask)
 
 static int rockchip_sfc_init(struct rockchip_sfc *sfc)
 {
-	u32 reg;
+	u32 reg, i;
 
 	writel(0, sfc->regbase + SFC_CTRL);
 	writel(0xFFFFFFFF, sfc->regbase + SFC_ICLR);
@@ -344,6 +345,10 @@ static int rockchip_sfc_init(struct rockchip_sfc *sfc)
 		reg = readl(sfc->regbase + SFC_EXT_CTRL);
 		reg |= SFC_SCLK_X2_BYPASS;
 		writel(reg, sfc->regbase + SFC_EXT_CTRL);
+	}
+	for (i = 0; i < SFC_MAX_CHIPSELECT_NUM; i++) {
+		if (sfc->dll_cells[i])
+			rockchip_sfc_set_delay_lines(sfc, (u16)sfc->dll_cells[i], i);
 	}
 
 	return 0;
@@ -932,6 +937,14 @@ static const struct rockchip_sfc_data rk3506_fspi_data = {
 	},
 };
 
+static const struct rockchip_sfc_data rk3538_fspi_data = {
+	.powergood = {
+		.valid = true,
+		.grf_offset = 0x170,
+		.bits_mask = BIT(0),
+	},
+};
+
 static const struct rockchip_sfc_data rv1126b_fspi_data = {
 	.powergood = {
 		.valid = true,
@@ -943,6 +956,7 @@ static const struct rockchip_sfc_data rv1126b_fspi_data = {
 static const struct of_device_id rockchip_sfc_dt_ids[] = {
 	{ .compatible = "rockchip,fspi",},
 	{ .compatible = "rockchip,rk3506-fspi", .data = &rk3506_fspi_data},
+	{ .compatible = "rockchip,rk3538-fspi", .data = &rk3538_fspi_data},
 	{ .compatible = "rockchip,rv1126b-fspi", .data = &rv1126b_fspi_data},
 	{ .compatible = "rockchip,sfc"},
 	{ /* sentinel */ }
@@ -1048,14 +1062,10 @@ static int rockchip_sfc_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, sfc);
 
-	if (IS_ENABLED(CONFIG_ROCKCHIP_THUNDER_BOOT)) {
-		u32 status;
-
-		if (readl_poll_timeout(sfc->regbase + SFC_SR, status,
-				       !(status & SFC_SR_IS_BUSY), 10,
-				       5000 * USEC_PER_MSEC))
-			dev_err(dev, "Wait for SFC idle timeout!\n");
-	}
+#ifdef CONFIG_ROCKCHIP_THUNDER_BOOT_SFC
+	if (rk_tb_wait_ramdisk_compress_done(5000) == 0)
+		dev_err(&pdev->dev, "Wait ramdisk_c complete timeout!\n");
+#endif
 
 	ret = rockchip_sfc_get_gpio_descs(master, sfc);
 	if (ret) {
@@ -1161,10 +1171,14 @@ static int __maybe_unused rockchip_sfc_runtime_resume(struct device *dev)
 		return ret;
 
 	ret = clk_prepare_enable(sfc->clk);
-	if (ret < 0)
+	if (ret < 0) {
 		clk_disable_unprepare(sfc->hclk);
+		return ret;
+	}
 
-	return ret;
+	rockchip_sfc_init(sfc);
+
+	return 0;
 }
 
 static int __maybe_unused rockchip_sfc_suspend(struct device *dev)
@@ -1176,8 +1190,7 @@ static int __maybe_unused rockchip_sfc_suspend(struct device *dev)
 
 static int __maybe_unused rockchip_sfc_resume(struct device *dev)
 {
-	struct rockchip_sfc *sfc = dev_get_drvdata(dev);
-	int ret, i;
+	int ret;
 
 	ret = pm_runtime_force_resume(dev);
 	if (ret < 0)
@@ -1189,12 +1202,6 @@ static int __maybe_unused rockchip_sfc_resume(struct device *dev)
 	if (ret < 0) {
 		pm_runtime_put_noidle(dev);
 		return ret;
-	}
-
-	rockchip_sfc_init(sfc);
-	for (i = 0; i < SFC_MAX_CHIPSELECT_NUM; i++) {
-		if (sfc->dll_cells[i])
-			rockchip_sfc_set_delay_lines(sfc, (u16)sfc->dll_cells[i], i);
 	}
 
 	pm_runtime_mark_last_busy(dev);

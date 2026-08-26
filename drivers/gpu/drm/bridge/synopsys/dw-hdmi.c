@@ -365,15 +365,6 @@ static void handle_plugged_change(struct dw_hdmi *hdmi, bool plugged)
 {
 	if (hdmi->plugged_cb && hdmi->codec_dev)
 		hdmi->plugged_cb(hdmi->codec_dev, plugged);
-	if (plugged && hdmi->ddc) {
-               struct edid *edid = drm_get_edid(&hdmi->connector, hdmi->ddc);
-               if (edid) {
-                       if (hdmi->cec_notifier)
-                               cec_notifier_set_phys_addr_from_edid(
-                                       hdmi->cec_notifier, edid);
-                       kfree(edid);
-               }
-       }
 }
 
 int dw_hdmi_set_plugged_cb(struct dw_hdmi *hdmi, hdmi_codec_plugged_cb fn,
@@ -1553,12 +1544,12 @@ static void dw_hdmi_update_csc_coeffs(struct dw_hdmi *hdmi)
 	is_output_rgb = hdmi_bus_fmt_is_rgb(hdmi->hdmi_data.enc_out_bus_format);
 
 	if (!is_input_rgb && is_output_rgb) {
-		if (hdmi->hdmi_data.enc_out_encoding == V4L2_YCBCR_ENC_601)
+		if (hdmi->hdmi_data.enc_out_encoding == DRM_MODE_COLORIMETRY_SMPTE_170M_YCC)
 			csc_coeff = &csc_coeff_rgb_out_eitu601;
 		else
 			csc_coeff = &csc_coeff_rgb_out_eitu709;
 	} else if (is_input_rgb && !is_output_rgb) {
-		if (hdmi->hdmi_data.enc_out_encoding == V4L2_YCBCR_ENC_601)
+		if (hdmi->hdmi_data.enc_out_encoding == DRM_MODE_COLORIMETRY_SMPTE_170M_YCC)
 			csc_coeff = &csc_coeff_rgb_in_eitu601;
 		else
 			csc_coeff = &csc_coeff_rgb_in_eitu709;
@@ -2282,50 +2273,36 @@ static void hdmi_config_AVI(struct dw_hdmi *hdmi,
 		frame.colorspace = HDMI_COLORSPACE_RGB;
 
 	/* Set up colorimetry */
-	if (!hdmi_bus_fmt_is_rgb(hdmi->hdmi_data.enc_out_bus_format)) {
-		switch (hdmi->hdmi_data.enc_out_encoding) {
-		case V4L2_YCBCR_ENC_601:
-			if (hdmi->hdmi_data.enc_in_encoding == V4L2_YCBCR_ENC_XV601)
-				frame.colorimetry = HDMI_COLORIMETRY_EXTENDED;
-			else
-				frame.colorimetry = HDMI_COLORIMETRY_ITU_601;
-			frame.extended_colorimetry =
-					HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
-			break;
-		case V4L2_YCBCR_ENC_709:
-			if (hdmi->hdmi_data.enc_in_encoding == V4L2_YCBCR_ENC_XV709)
-				frame.colorimetry = HDMI_COLORIMETRY_EXTENDED;
-			else
-				frame.colorimetry = HDMI_COLORIMETRY_ITU_709;
-			frame.extended_colorimetry =
-					HDMI_EXTENDED_COLORIMETRY_XV_YCC_709;
-			break;
-		case V4L2_YCBCR_ENC_BT2020:
-			if (hdmi->hdmi_data.enc_in_encoding == V4L2_YCBCR_ENC_BT2020)
-				frame.colorimetry = HDMI_COLORIMETRY_EXTENDED;
-			else
-				frame.colorimetry = HDMI_COLORIMETRY_ITU_709;
-			frame.extended_colorimetry =
-				HDMI_EXTENDED_COLORIMETRY_BT2020;
+	switch (hdmi->hdmi_data.enc_out_encoding) {
+	/*
+	 * When outputting the BT601 or BT709 colorimetry, only the values
+	 * of frame.colorimetry will actually take effect. The value of
+	 * frame.extended_colorimetry will not take effect in reality.
+	 * Any value can be configured.
+	 */
+	case DRM_MODE_COLORIMETRY_SMPTE_170M_YCC:
+		frame.colorimetry = HDMI_COLORIMETRY_ITU_601;
+		frame.extended_colorimetry = HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
 		break;
-		default: /* Carries no data */
-			frame.colorimetry = HDMI_COLORIMETRY_ITU_601;
-			frame.extended_colorimetry =
-					HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
-			break;
-		}
+	case DRM_MODE_COLORIMETRY_BT709_YCC:
+		frame.colorimetry = HDMI_COLORIMETRY_ITU_709;
+		frame.extended_colorimetry = HDMI_EXTENDED_COLORIMETRY_XV_YCC_709;
+		break;
+	case DRM_MODE_COLORIMETRY_BT2020_YCC:
+	case DRM_MODE_COLORIMETRY_BT2020_RGB:
+		frame.colorimetry = HDMI_COLORIMETRY_EXTENDED;
+		frame.extended_colorimetry = HDMI_EXTENDED_COLORIMETRY_BT2020;
+		break;
+	default: /* Carries no data */
+		frame.colorimetry = HDMI_COLORIMETRY_ITU_601;
+		frame.extended_colorimetry =
+				HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
+		break;
+	}
+
+	if (!hdmi_bus_fmt_is_rgb(hdmi->hdmi_data.enc_out_bus_format)) {
 		frame.ycc_quantization_range = HDMI_YCC_QUANTIZATION_RANGE_LIMITED;
 	} else {
-		if (hdmi->hdmi_data.enc_out_encoding == V4L2_YCBCR_ENC_BT2020) {
-			frame.colorimetry = HDMI_COLORIMETRY_EXTENDED;
-			frame.extended_colorimetry =
-				HDMI_EXTENDED_COLORIMETRY_BT2020;
-		} else {
-			frame.colorimetry = HDMI_COLORIMETRY_NONE;
-			frame.extended_colorimetry =
-				HDMI_EXTENDED_COLORIMETRY_XV_YCC_601;
-		}
-
 		if (is_hdmi2 && frame.quantization_range == HDMI_QUANTIZATION_RANGE_FULL)
 			frame.ycc_quantization_range = HDMI_YCC_QUANTIZATION_RANGE_FULL;
 		else
@@ -2876,9 +2853,9 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
 		 (hdmi->vic == 21) || (hdmi->vic == 22) ||
 		 (hdmi->vic == 2) || (hdmi->vic == 3) ||
 		 (hdmi->vic == 17) || (hdmi->vic == 18))
-		hdmi->hdmi_data.enc_out_encoding = V4L2_YCBCR_ENC_601;
+		hdmi->hdmi_data.enc_out_encoding = DRM_MODE_COLORIMETRY_SMPTE_170M_YCC;
 	else
-		hdmi->hdmi_data.enc_out_encoding = V4L2_YCBCR_ENC_709;
+		hdmi->hdmi_data.enc_out_encoding = DRM_MODE_COLORIMETRY_BT709_YCC;
 
 	if (mode->flags & DRM_MODE_FLAG_DBLCLK) {
 		hdmi->hdmi_data.video_mode.mpixelrepetitionoutput = 1;
@@ -3227,11 +3204,14 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 					     connector);
 	struct hdr_static_metadata *metedata =
 			&connector->hdr_sink_metadata.hdmi_type1;
-	struct edid *edid;
+	const struct edid *edid = NULL;
+	const struct drm_edid *drm_edid;
 	struct drm_display_mode *mode;
 	struct drm_display_info *info = &connector->display_info;
+	struct drm_property_blob *edid_blob_ptr = connector->edid_blob_ptr;
 	void *data = hdmi->plat_data->phy_data;
-	int i,  ret = 0;
+	int i, ret = 0;
+	int ext_block_num;
 
 	if (hdmi->force_kernel_output) {
 		mode = hdmi->plat_data->get_force_timing(data);
@@ -3250,20 +3230,30 @@ static int dw_hdmi_connector_get_modes(struct drm_connector *connector)
 	}
 
 	memset(metedata, 0, sizeof(*metedata));
-	edid = dw_hdmi_get_edid(hdmi, connector);
+	if (edid_blob_ptr && edid_blob_ptr->length)
+		drm_edid = drm_edid_alloc(edid_blob_ptr->data, edid_blob_ptr->length);
+	else
+		drm_edid = drm_edid_read_ddc(connector, hdmi->ddc);
+
+	if (drm_edid)
+		edid = drm_edid_raw(drm_edid);
+
 	if (edid) {
 		int vic = 0;
 
 		dev_dbg(hdmi->dev, "got edid: width[%d] x height[%d]\n",
 			edid->width_cm, edid->height_cm);
-		drm_connector_update_edid_property(connector, edid);
-		cec_notifier_set_phys_addr_from_edid(hdmi->cec_notifier, edid);
-		ret = drm_add_edid_modes(connector, edid);
-		if (hdmi->plat_data->get_color_changed)
-			hdmi->plat_data->get_yuv422_format(connector, edid);
-		if (hdmi->plat_data->get_colorimetry)
-			hdmi->plat_data->get_colorimetry(data, edid);
+		ret = drm_edid_connector_update(connector, drm_edid);
 
+		edid_blob_ptr = connector->edid_blob_ptr;
+		ext_block_num = edid_blob_ptr->length;
+		cec_notifier_set_phys_addr_from_edid(hdmi->cec_notifier, edid);
+		if (hdmi->plat_data->get_color_changed)
+			hdmi->plat_data->get_yuv422_format(connector, edid, ext_block_num);
+		if (hdmi->plat_data->get_colorimetry)
+			hdmi->plat_data->get_colorimetry(data, edid, ext_block_num);
+		hdmi->support_hdmi = drm_detect_hdmi_monitor(edid);
+		hdmi->sink_has_audio = drm_detect_monitor_audio(edid);
 		list_for_each_entry(mode, &connector->probed_modes, head) {
 			vic = drm_match_cea_mode(mode);
 

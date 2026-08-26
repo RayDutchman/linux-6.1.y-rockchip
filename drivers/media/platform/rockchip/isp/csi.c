@@ -432,7 +432,7 @@ int rkisp_expander_config(struct rkisp_device *dev,
 		cfg = &hdr_cfg;
 	}
 
-	if (cfg->hdr_mode != HDR_COMPR)
+	if (cfg->hdr_mode != HDR_CIS_MERGE)
 		return 0;
 
 	/* input data (12bit or 16bit) and output data max 20bit */
@@ -566,7 +566,7 @@ int rkisp_csi_config_patch(struct rkisp_device *dev, bool is_pre_cfg)
 			}
 
 			/* normal read back mode default */
-			if (dev->hdr.op_mode == HDR_NORMAL || dev->hdr.op_mode == HDR_COMPR)
+			if (dev->hdr.op_mode == HDR_NORMAL || dev->hdr.op_mode == HDR_CIS_MERGE)
 				dev->hdr.op_mode = HDR_RDBK_FRAME1;
 
 			if (dev->isp_inp == INP_CIF && dev->isp_ver > ISP_V21) {
@@ -688,6 +688,8 @@ int rkisp_csi_config_patch(struct rkisp_device *dev, bool is_pre_cfg)
 	}
 	if (dev->isp_ver >= ISP_V30)
 		val |= ISP3X_SW_ACK_FRM_PRO_DIS;
+	if (dev->isp_ver >= ISP_V33)
+		val |= ISP33_SW_DITHER_EN;
 	if (val)
 		rkisp_unite_set_bits(dev, CTRL_SWS_CFG, 0, val, false);
 	/* line counter from isp out, default from mp out */

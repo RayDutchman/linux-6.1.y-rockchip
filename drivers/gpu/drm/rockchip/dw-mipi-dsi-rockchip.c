@@ -1035,7 +1035,6 @@ static int dw_mipi_dsi_get_dsc_info_from_sink(struct dw_mipi_dsi_rockchip *dsi,
 	dsi->scrambling_en = of_property_read_bool(np, "scrambling-enable");
 	dsi->dsc_enable = of_property_read_bool(np, "compressed-data");
 	dsi->block_pred_enable = of_property_read_bool(np, "blk-pred-enable");
-	of_property_read_u32(np, "dsi,flags", &dsi->mode_flags);
 	of_property_read_u32(np, "slice-width", &dsi->slice_width);
 	of_property_read_u32(np, "slice-height", &dsi->slice_height);
 	of_property_read_u32(np, "slice-per-pkt", &dsi->slice_per_pkt);
@@ -1431,6 +1430,19 @@ dw_mipi_dsi_rockchip_stream_standby(void *priv_data, bool standby)
 	rockchip_drm_crtc_standby(encoder->crtc, standby);
 }
 
+static int dw_mipi_dsi_rockchip_attach(void *priv_data, struct mipi_dsi_device *dsi)
+{
+	struct dw_mipi_dsi_rockchip *dsi_host = priv_data;
+
+	dsi_host->mode_flags = dsi->mode_flags;
+
+	return 0;
+}
+
+static const struct dw_mipi_dsi_host_ops dw_mipi_dsi_rockchip_host_ops = {
+	.attach = dw_mipi_dsi_rockchip_attach,
+};
+
 static int dw_mipi_dsi_rockchip_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -1556,6 +1568,7 @@ static int dw_mipi_dsi_rockchip_probe(struct platform_device *pdev)
 	dsi->pdata.base = dsi->base;
 	dsi->pdata.max_data_lanes = dsi->cdata->max_data_lanes;
 	dsi->pdata.phy_ops = &dw_mipi_dsi_rockchip_phy_ops;
+	dsi->pdata.host_ops = &dw_mipi_dsi_rockchip_host_ops;
 	dsi->pdata.priv_data = dsi;
 
 	if (dsi->cdata->soc_type == RK3568)
@@ -1565,16 +1578,18 @@ static int dw_mipi_dsi_rockchip_probe(struct platform_device *pdev)
 
 	mutex_init(&dsi->usage_mutex);
 
-	dsi->dphy = devm_phy_create(dev, NULL, &dw_mipi_dsi_dphy_ops);
-	if (IS_ERR(dsi->dphy)) {
-		DRM_DEV_ERROR(&pdev->dev, "failed to create PHY\n");
-		return PTR_ERR(dsi->dphy);
-	}
+	if (!dsi->dphy && (dsi->cdata->soc_type == RK3399 || dsi->cdata->soc_type == RK3288)) {
+		dsi->dphy = devm_phy_create(dev, NULL, &dw_mipi_dsi_dphy_ops);
+		if (IS_ERR(dsi->dphy)) {
+			DRM_DEV_ERROR(&pdev->dev, "failed to create PHY\n");
+			return PTR_ERR(dsi->dphy);
+		}
 
-	phy_set_drvdata(dsi->dphy, dsi);
-	phy_provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
-	if (IS_ERR(phy_provider))
-		return PTR_ERR(phy_provider);
+		phy_set_drvdata(dsi->dphy, dsi);
+		phy_provider = devm_of_phy_provider_register(dev, of_phy_simple_xlate);
+		if (IS_ERR(phy_provider))
+			return PTR_ERR(phy_provider);
+	}
 
 	dsi->dmd = dw_mipi_dsi_probe(pdev, &dsi->pdata);
 	if (IS_ERR(dsi->dmd)) {

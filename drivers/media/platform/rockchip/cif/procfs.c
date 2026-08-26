@@ -587,7 +587,7 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 
 		seq_printf(f, "\thdr mode: %s\n",
 			   dev->hdr.hdr_mode == NO_HDR ? "normal" :
-			   dev->hdr.hdr_mode == HDR_COMPR ? "hdr_compr" :
+			   dev->hdr.hdr_mode == HDR_CIS_MERGE ? "hdr_cis_merge" :
 			   dev->hdr.hdr_mode == HDR_X2 ? "hdr_x2" : "hdr_x3");
 
 		seq_printf(f, "\tformat:%s/%ux%u@%d\n",
@@ -604,7 +604,7 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 		timestamp1 = stream->fps_stats.frm1_timestamp;
 		spin_unlock_irqrestore(&stream->fps_lock, flags);
 		if (dev->sditf[0] && dev->sditf[0]->mode.rdbk_mode < RKISP_VICAP_RDBK_AIQ)
-			fps = dev->stream[0].readout.total_time;
+			fps = dev->stream[0].readout.rate_time;
 		else
 			fps = timestamp0 > timestamp1 ?
 			      timestamp0 - timestamp1 : timestamp1 - timestamp0;
@@ -620,26 +620,30 @@ static void rkcif_show_format(struct rkcif_device *dev, struct seq_file *f)
 		if (dev->inf_id == RKCIF_MIPI_LVDS) {
 			time_val = div_u64(stream->readout.early_time, 1000);
 			time_val = div_u64_rem(time_val, 1000, &remainder);
-			seq_printf(f, "\tearly:%u.%u ms\n", time_val, remainder);
+			seq_printf(f, "\tearly:%u.%03u ms\n", time_val, remainder);
 			if (dev->hdr.hdr_mode == NO_HDR ||
-			    dev->hdr.hdr_mode == HDR_COMPR) {
+			    dev->hdr.hdr_mode == HDR_CIS_MERGE) {
 				time_val = div_u64(stream->readout.readout_time, 1000);
 				time_val = div_u64_rem(time_val, 1000, &remainder);
-				seq_printf(f, "\tsingle readout:%u.%u ms\n", time_val, remainder);
+				seq_printf(f, "\tsingle readout:%u.%03u ms\n", time_val, remainder);
 			} else {
 				time_val = div_u64(stream->readout.readout_time, 1000);
 				time_val = div_u64_rem(time_val, 1000, &remainder);
-				seq_printf(f, "\tsingle readout:%u.%u ms\n", time_val, remainder);
+				seq_printf(f, "\tsingle readout:%u.%03u ms\n", time_val, remainder);
 				time_val = div_u64(stream->readout.total_time, 1000);
 				time_val = div_u64_rem(time_val, 1000, &remainder);
-				seq_printf(f, "\ttotal readout:%u.%u ms\n", time_val, remainder);
+				seq_printf(f, "\ttotal readout:%u.%03u ms\n", time_val, remainder);
 
 			}
 		}
 		time_val = div_u64_rem(fps, 1000, &remainder);
-		seq_printf(f, "\trate:%u.%u ms\n", time_val, remainder);
-		fps = div_u64(1000000, fps);
-		seq_printf(f, "\tfps:%llu\n", fps);
+		seq_printf(f, "\trate:%u.%03u ms\n", time_val, remainder);
+		time_val = div_u64(stream->readout.readout_time, 1000);
+		time_val = div_u64_rem(fps - time_val, 1000, &remainder);
+		seq_printf(f, "\tvblank:%u.%03u ms\n", time_val, remainder);
+		fps = div_u64(1000000000, fps);
+		time_val = div_u64_rem(fps, 1000, &remainder);
+		seq_printf(f, "\tfps:%u.%03u \n", time_val, remainder);
 		seq_puts(f, "\tirq statistics:\n");
 		seq_printf(f, "\t\t\ttotal:%llu\n",
 			   dev->irq_stats.frm_end_cnt[0] +

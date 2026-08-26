@@ -413,10 +413,13 @@ int rk_ahash_crypto_rx(struct rk_crypto_dev *rk_dev)
 
 	if (alg_ctx->left_bytes) {
 		if (alg_ctx->aligned) {
-			err = rk_crypto_sg_walk_nents(&alg_ctx->sg_src, NULL,
-						      alg_ctx->map_nents, rk_dev->dev);
-			if (err)
+			if (sg_is_last(alg_ctx->sg_src)) {
+				dev_warn(rk_dev->dev, "[%s:%d], Lack of data\n",
+					 __func__, __LINE__);
+				err = -ENOMEM;
 				goto out_rx;
+			}
+			alg_ctx->sg_src = sg_next(alg_ctx->sg_src);
 		}
 		err = rk_ahash_set_data_start(rk_dev, rctx->flag);
 	} else {

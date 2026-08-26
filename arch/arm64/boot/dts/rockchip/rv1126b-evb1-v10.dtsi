@@ -85,6 +85,7 @@
 		regulator-name = "vccio_sd";
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <3300000>;
+		regulator-init-microvolt = <3300000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&sdmmc_volt>;
 		gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
@@ -324,7 +325,6 @@
 		reg = <0x14>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&touch_gpio>;
-		power-supply = <&vcc_mipi>;
 		goodix,rst-gpio = <&gpio7 RK_PA7 GPIO_ACTIVE_HIGH>;
 		goodix,irq-gpio = <&gpio7 RK_PA6 IRQ_TYPE_LEVEL_LOW>;
 	};
@@ -332,7 +332,6 @@
 	hynitron: hynitron@5a {
 		compatible = "hyn,3240";
 		reg = <0x5a>;
-		power-supply = <&vcc_mipi>;
 
 		pinctrl-names = "ts_active","ts_suspend";
 		pinctrl-0 = <&ts_int_active &ts_reset_active>;
@@ -353,11 +352,15 @@
 	rmii_phy: ethernet-phy@2 {
 		compatible = "ethernet-phy-id0680.8101", "ethernet-phy-ieee802.3-c22";
 		reg = <2>;
-		clocks = <&cru CLK_MACPHY>;
+		rockchip,macphy = <&macphy>;
+		clocks = <&cru CLK_MACPHY>, <&cru PCLK_MACPHY>;
+		clock-names = "clk", "pclk";
 		clock-frequency = <24000000>;
 		resets = <&cru SRST_RESETN_MACPHY>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&fephym1_pins>;
+		nvmem-cells = <&macphy_txamp>, <&macphy_adc_offset>;
+		nvmem-cell-names = "txamp", "adc_offset";
 		phy-is-integrated;
 	};
 };
@@ -486,6 +489,10 @@
 	status = "okay";
 };
 
+&rtc {
+	status = "okay";
+};
+
 &sai2 {
 	status = "okay";
 	/delete-property/ pinctrl-names;
@@ -520,6 +527,7 @@
 	pinctrl-0 = <&sdmmc1_clk_pins &sdmmc1_cmd_pins &sdmmc1_bus4_pins>;
 	keep-power-in-suspend;
 	non-removable;
+	no-low-pwr;
 	mmc-pwrseq = <&sdio_pwrseq>;
 	//sd-uhs-sdr104;
 	status = "okay";

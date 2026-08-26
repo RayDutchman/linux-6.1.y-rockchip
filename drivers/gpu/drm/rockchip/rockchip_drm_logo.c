@@ -731,12 +731,19 @@ static void rockchip_drm_mode_fixup(struct drm_crtc_state *crtc_state,
 	struct drm_encoder *encoder = conn_state->best_encoder;
 	struct drm_crtc *crtc = crtc_state->crtc;
 	struct drm_bridge *bridge;
+	struct drm_display_info *di;
 	int ret;
 
 	ret = drm_atomic_set_mode_for_crtc(crtc_state, adj_mode);
 	if (ret)
 		return;
 
+	if (!conn_state->connector) {
+		conn_state->max_bpc = 8;
+	} else {
+		di = &conn_state->connector->display_info;
+		conn_state->max_bpc = di->bpc ? di->bpc : 8;
+	}
 	bridge = drm_bridge_chain_get_first_bridge(encoder);
 	if (bridge) {
 		/*
@@ -1104,6 +1111,23 @@ void rockchip_drm_show_logo(struct drm_device *drm_dev)
 	unsigned int plane_mask = 0;
 	struct drm_crtc *crtc;
 	int ret, i;
+	static bool is_first_show_logo = true;
+
+	/*
+	 * The rockchip_drm_bind() and rockchip_drm_unbind() may be invoked
+	 * manually by the user multiple times.
+	 *
+	 * During the first call to rockchip_drm_bind(),
+	 * rockchip_drm_show_logo() attempts to parse the buffer passed in
+	 * by U-Boot and releases those resources immediately after their
+	 * initial use.
+	 *
+	 * When rockchip_drm_bind() is executed a second time, those resources
+	 * are no longer available, so we skip the logo display.
+	 */
+	if (!is_first_show_logo)
+		return;
+	is_first_show_logo = false;
 
 	root = of_get_child_by_name(np, "route");
 	if (!root) {
@@ -1177,9 +1201,15 @@ void rockchip_drm_show_logo(struct drm_device *drm_dev)
 			 */
 			if (unset->hdisplay && unset->vdisplay) {
 				crtc_state = drm_atomic_get_crtc_state(state, crtc);
-				if (crtc_state)
+				if (crtc_state) {
 					rockchip_drm_copy_mode_from_mode_set(&crtc_state->adjusted_mode,
 									     unset);
+					ret = drm_atomic_set_mode_for_crtc(crtc_state, NULL);
+					if (ret)
+						dev_warn(drm_dev->dev,
+							 "CRTC:%s set null mode failed\n",
+							 crtc->name);
+				}
 				if (priv->crtc_funcs[pipe] &&
 				    priv->crtc_funcs[pipe]->loader_protect)
 					priv->crtc_funcs[pipe]->loader_protect(crtc, true,
@@ -1319,6 +1349,8 @@ static const char *const loader_protect_clocks[] __initconst = {
 	"dclk_vp1",
 	"dclk_vp2",
 	"dclk_vp3",
+	"clk_dsihost0",
+	"clk_dsihost1",
 };
 
 static struct clk **loader_clocks;

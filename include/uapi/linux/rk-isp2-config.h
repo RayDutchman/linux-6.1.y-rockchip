@@ -12,7 +12,7 @@
 #include <linux/v4l2-controls.h>
 #include <linux/rk-camera-module.h>
 
-#define RKISP_API_VERSION		KERNEL_VERSION(3, 1, 0)
+#define RKISP_API_VERSION		KERNEL_VERSION(3, 2, 0)
 
 /****************ISP SUBDEV IOCTL*****************************/
 
@@ -99,6 +99,9 @@
 
 #define RKISP_CMD_AIAWB_BUF \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 29, struct rkisp_aiawb_buffd)
+
+#define RKISP_CMD_BTNR_WGT_READY \
+	_IO('V', BASE_VIDIOC_PRIVATE + 30)
 
 /****************ISP VIDEO IOCTL******************************/
 
@@ -459,7 +462,9 @@ struct rkisp_aiisp_st {
 } __attribute__ ((packed));
 
 /* struct rkisp_aiisp_cfg
- * mode: 0:isp whole  1:isp divided into isp_fe and isp_be 2:isp divided into isp_fe and (isp_fe isp_be)
+ * mode: 0:isp whole
+ *       1:isp divided into isp_fe and isp_be
+ *       2:isp divided into isp_fe isp_fe and isp_be
  * wr_linecnt: btnr iir write irq line
  * rd_linecnt: isp_be read irq line
  * wr_mode: 0:frame with only one RKISP_AIISP_WR_LINECNT_ID event, else event per wr_linecnt
@@ -2222,6 +2227,7 @@ struct rkisp_thunderboot_resmem_head {
 	__u32 pre_buf_num;
 	__u32 pre_buf_addr[MAX_PRE_BUF_NUM];
 	__u32 pre_buf_timestamp[MAX_PRE_BUF_NUM];
+	__u32 rkisp_tb_resmem_head_size;
 } __attribute__ ((packed));
 
 /**

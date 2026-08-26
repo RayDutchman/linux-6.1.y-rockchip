@@ -266,10 +266,14 @@ int rk_ablk_rx(struct rk_crypto_dev *rk_dev)
 	if (alg_ctx->left_bytes) {
 		rk_update_iv(rk_dev);
 		if (alg_ctx->aligned) {
-			err = rk_crypto_sg_walk_nents(&alg_ctx->sg_src, &alg_ctx->sg_dst,
-						      alg_ctx->map_nents, rk_dev->dev);
-			if (err)
+			if (sg_is_last(alg_ctx->sg_src)) {
+				dev_err(rk_dev->dev, "[%s:%d] Lack of data\n",
+					__func__, __LINE__);
+				err = -ENOMEM;
 				goto out_rx;
+			}
+			alg_ctx->sg_src = sg_next(alg_ctx->sg_src);
+			alg_ctx->sg_dst = sg_next(alg_ctx->sg_dst);
 		}
 		err = rk_set_data_start(rk_dev);
 	} else {

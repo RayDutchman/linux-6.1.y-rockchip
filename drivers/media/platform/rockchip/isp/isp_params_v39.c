@@ -3378,6 +3378,8 @@ isp_bay3d_enable(struct rkisp_isp_params_vdev *params_vdev, bool en, u32 id)
 		value = priv_val->buf_bay3d_iir[0].dma_addr + value * id;
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_IIR_WR_BASE, id);
 		isp3_param_write(params_vdev, value, ISP3X_MI_BAY3D_IIR_RD_BASE, id);
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_IIR_WR_LENGTH, id);
+		isp3_param_write(params_vdev, 0, ISP3X_MI_BAY3D_IIR_RD_LENGTH, id);
 		if (priv_val->buf_aiisp[0].mem_priv) {
 			priv_val->aiisp_cur_idx = 0;
 			value = priv_val->buf_aiisp[0].dma_addr + value * id;
@@ -4865,7 +4867,8 @@ module_data_abandon(struct rkisp_isp_params_vdev *params_vdev,
 			if (priv_val->buf_ldch[id][i].vaddr &&
 			    arg->buf_fd == priv_val->buf_ldch[id][i].dma_fd) {
 				mesh_head = priv_val->buf_ldch[id][i].vaddr;
-				mesh_head->stat = MESH_BUF_CHIPINUSE;
+				if (mesh_head->stat == MESH_BUF_WAIT2CHIP)
+					mesh_head->stat = MESH_BUF_INIT;
 				break;
 			}
 		}
@@ -4878,7 +4881,8 @@ module_data_abandon(struct rkisp_isp_params_vdev *params_vdev,
 			if (priv_val->buf_ldcv[id][i].vaddr &&
 			    arg->buf_fd == priv_val->buf_ldcv[id][i].dma_fd) {
 				mesh_head = priv_val->buf_ldcv[id][i].vaddr;
-				mesh_head->stat = MESH_BUF_CHIPINUSE;
+				if (mesh_head->stat == MESH_BUF_WAIT2CHIP)
+					mesh_head->stat = MESH_BUF_INIT;
 				break;
 			}
 		}
@@ -4891,7 +4895,8 @@ module_data_abandon(struct rkisp_isp_params_vdev *params_vdev,
 			if (priv_val->buf_cac[id][i].vaddr &&
 			    arg->buf_fd == priv_val->buf_cac[id][i].dma_fd) {
 				mesh_head = priv_val->buf_cac[id][i].vaddr;
-				mesh_head->stat = MESH_BUF_CHIPINUSE;
+				if (mesh_head->stat == MESH_BUF_WAIT2CHIP)
+					mesh_head->stat = MESH_BUF_INIT;
 				break;
 			}
 		}

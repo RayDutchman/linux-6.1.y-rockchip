@@ -60,6 +60,8 @@
 #define RKCIF_PLANE_Y		0
 #define RKCIF_PLANE_CBCR	1
 
+#define ALIGN_ANY_SAFE(x, a) ((((x) - 1) / (a) + 1) * (a))
+
 /*
  * RK1808 support 5 channel inputs simultaneously:
  * dvp + 4 mipi virtual channels;
@@ -131,7 +133,8 @@ enum rkcif_stream_mode {
 	RKCIF_STREAM_MODE_TOISP      = 0x02,
 	RKCIF_STREAM_MODE_TOSCALE    = 0x04,
 	RKCIF_STREAM_MODE_TOISP_RDBK = 0x08,
-	RKCIF_STREAM_MODE_ROCKIT     = 0x10
+	RKCIF_STREAM_MODE_ROCKIT     = 0x10,
+	RKCIF_STREAM_MODE_TOOL       = 0x20,
 };
 
 enum rkcif_yuvaddr_state {
@@ -364,6 +367,7 @@ struct rkcif_fps_stats {
  * @readout_time: one frame of readout time
  * @early_time: early time of buf send to user
  * @total_time: totaltime of readout time in hdr
+ * @rate_time: single frame interval
  */
 struct rkcif_readout_stats {
 	u64 fs_timestamp;
@@ -372,6 +376,7 @@ struct rkcif_readout_stats {
 	u64 readout_time;
 	u64 early_time;
 	u64 total_time;
+	u64 rate_time;
 };
 
 /* struct rkcif_irq_stats - take notes on irq number
@@ -654,7 +659,9 @@ struct rkcif_stream {
 	struct kfifo			dcg_kfifo;
 	struct rkmodule_exp_delay	exp_delay;
 	struct rkmodule_exp_info	sensor_exp_info;
+	int				real_skip_num;
 	bool				stopping;
+	struct csi_channel_info		channel_info;
 	bool				crop_enable;
 	bool				crop_dyn_en;
 	bool				is_compact;
@@ -681,6 +688,8 @@ struct rkcif_stream {
 	bool				is_fb_first_frame;
 	bool				is_pause_stream;
 	bool				is_force_update;
+	bool				is_hold_stream_off;
+	bool				is_single_buf_mode;
 };
 
 struct rkcif_lvds_subdev {
@@ -824,6 +833,7 @@ struct rkcif_scale_vdev {
 	unsigned int frame_idx;
 	int scl_mode;
 	int extrac_pattern;
+	int cur_stream_mode;
 	bool stopping;
 };
 
@@ -876,6 +886,7 @@ struct rkcif_tools_vdev {
 	int frame_phase;
 	unsigned int frame_idx;
 	bool stopping;
+	bool is_cap_scale;
 };
 
 static inline
@@ -1082,6 +1093,8 @@ struct rkcif_device {
 	u32				dvp_pin_group;
 	u32				unite_extend_pixel;
 	struct rkcif_switch_info	switch_info;
+	struct rkmodule_irfpa_info	irfpa_info;
+	int				prev_id;
 };
 
 extern struct platform_driver rkcif_plat_drv;
@@ -1211,4 +1224,13 @@ int rkcif_sensor_set_power(struct rkcif_stream *stream, int on);
 void rkcif_switch_change(struct rkcif_device *cif_dev, bool is_switch);
 
 void rkcif_update_unite_extend_pixel(struct rkcif_device *cif_dev);
+
+int rkcif_scale_do_start_stream(struct rkcif_scale_vdev *scale_vdev, enum rkcif_stream_mode mode);
+void rkcif_scale_do_stop_stream(struct rkcif_scale_vdev *scale_vdev, enum rkcif_stream_mode mode);
+int rkcif_scale_set_fmt(struct rkcif_scale_vdev *scale_vdev,
+			struct v4l2_pix_format_mplane *pixm, bool try);
+void rkcif_scale_vb2_buf_queue(struct vb2_buffer *vb);
+void rkcif_scale_vb_done_oneframe(struct rkcif_scale_vdev *scale_vdev,
+				  struct vb2_v4l2_buffer *vb_done);
+
 #endif
