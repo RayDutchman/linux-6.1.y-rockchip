@@ -1145,3 +1145,29 @@
 	/delete-property/ memory-region;
 	/delete-property/ memory-region-names;
 };
+
+/* 以太网 LED (Ethernet_LED 接 GPIO3_C0_d, 软件控制): netdev trigger,
+ * 具体模式(link/tx/rx)在 sysfs: /sys/class/leds/eth-led/{net_dev,mode} */
+/ {
+	gpio-leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&eth_led_gpio>;
+
+		eth_led: eth-led {
+			label = "eth-led";
+			gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "netdev";
+			default-state = "off";
+		};
+	};
+};
+
+&pinctrl {
+	eth-led {
+		/omit-if-no-ref/
+		eth_led_gpio: eth-led-gpio {
+			rockchip,pins = <3 RK_PC0 0 &pcfg_pull_none>;
+		};
+	};
+};
