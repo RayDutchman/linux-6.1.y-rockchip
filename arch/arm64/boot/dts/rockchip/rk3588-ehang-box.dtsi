@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+﻿// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  *
@@ -664,7 +664,10 @@ i2c_cpu_big: i2c-gpio {
 */
 
 &i2s2_2ch {
+	pinctrl-names = "default", "idle", "clk";
 	pinctrl-0 = <&i2s2m0_sclk &i2s2m0_lrck &i2s2m0_sdi &i2s2m0_sdo>;
+	pinctrl-1 = <&i2s2m0_idle>;
+	pinctrl-2 = <&i2s2m0_lrck &i2s2m0_sclk>;
 	status = "okay";
 };
 
