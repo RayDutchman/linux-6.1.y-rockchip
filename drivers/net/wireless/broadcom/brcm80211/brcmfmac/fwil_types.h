@@ -405,6 +405,36 @@ struct brcmf_escan_params_le {
 	struct brcmf_scan_params_le params_le;
 };
 
+/* BCM43752 等新固件要求 escan 请求使用 v2 参数格式（v1 会被 BCME_VERSION 拒绝）。
+ * 对齐 bcmdhd SDK wl_escan_params_v2: scan_params 带 version/length 头,
+ * scan_type 由 u8 拓宽为 u32
+ */
+#define BRCMF_ESCAN_REQ_VERSION_V2		2
+#define BRCMF_SCAN_PARAMS_VERSION_V2		2
+
+struct brcmf_scan_params_v2_le {
+	__le16 version;
+	__le16 length;
+	struct brcmf_ssid_le ssid;
+	u8 bssid[ETH_ALEN];
+	u8 bss_type;
+	u8 pad;
+	__le32 scan_type;
+	__le32 nprobes;
+	__le32 active_time;
+	__le32 passive_time;
+	__le32 home_time;
+	__le32 channel_num;
+	__le16 channel_list[1];
+};
+
+struct brcmf_escan_params_v2_le {
+	__le32 version;
+	__le16 action;
+	__le16 sync_id;
+	struct brcmf_scan_params_v2_le params_le;
+};
+
 struct brcmf_escan_result_le {
 	__le32 buflen;
 	__le32 version;
