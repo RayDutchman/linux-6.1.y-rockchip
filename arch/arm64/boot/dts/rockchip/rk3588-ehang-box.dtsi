@@ -415,7 +415,7 @@
 		regulator-boot-on;
 		gpio = <&gpio3 RK_PC7 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
-		pinctrl-0 = <&wifi_poweren>;
+		pinctrl-0 = <&wifi_poweren_gpio>;
 		startup-delay-us = <200000>;
 	};
 };
