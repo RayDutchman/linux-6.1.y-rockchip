@@ -278,6 +278,10 @@
 */
 
 
+/*
+ * vendor bluetooth-platdata 方案弃用: 改用主线 hci_bcm serdev (见 &uart9),
+ * reset/wake gpio 由 serdev 设备的 shutdown-gpios/device-wakeup-gpios 接管
+ * (rfkill-bt 的 bt_default 节点随之消失, bluetoothctl 的 rfkill 由 hci0 提供)
 	wireless_bluetooth: wireless-bluetooth {
 		compatible = "bluetooth-platdata";
 		clocks = <&hym8563>;
@@ -294,6 +298,7 @@
 		interrupts = <RK_PA0 IRQ_TYPE_LEVEL_LOW>;
 		wakeup-source;
 	};
+*/
 
 /*
 	wireless_bluetooth: wireless-bluetooth {
@@ -380,7 +385,18 @@
 &uart9 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&uart9m0_xfer &uart9m0_ctsn>;
+	pinctrl-0 = <&uart9m0_xfer &uart9m0_ctsn &uart9m0_rtsn>;
+
+	/* AP6275P 蓝牙 (BCM4362A2): 主线 hci_bcm serdev, 自动加载
+	 * /lib/firmware/brcm/BCM4362A2.hcd 并切换 1.5M 波特率, 无需用户态 attach */
+	bluetooth {
+		compatible = "brcm,bcm43438-bt";
+		clocks = <&hym8563>;
+		clock-names = "lpo";
+		max-speed = <1500000>;
+		shutdown-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+		device-wakeup-gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 /* ap6275 : wifi */
@@ -1101,5 +1117,10 @@
 &gpu_panthor {
 	mali-supply = <&vdd_gpu_s0>;
 	sram-supply = <&vdd_gpu_mem_s0>;
+	status = "okay";
+};
+
+/* SoC watchdog, 原厂 dtsi 默认 disabled */
+&wdt {
 	status = "okay";
 };
