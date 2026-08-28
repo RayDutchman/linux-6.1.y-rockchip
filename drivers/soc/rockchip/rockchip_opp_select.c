@@ -2091,8 +2091,10 @@ static int rockchip_pvtpll_set_volt_sel(struct device *dev,
 	res = sip_smc_pvtpll_config(PVTPLL_VOLT_SEL, info->pvtpll_clk_id,
 				    (u32)info->volt_sel, 0, 0, 0, 0);
 	if (res.a0)
-		dev_err(dev, "%s: error cfg clk_id=%u voltsel (%d)\n", __func__,
-			info->pvtpll_clk_id, (int)res.a0);
+		/* pvtpll SMC 服务由 Rockchip 官方 bl31 提供, Armbian/主线固件
+		 * 无此服务(-1), pvtpll 电压微调不可用但常规 DVFS 不受影响 */
+		dev_info(dev, "%s: pvtpll smc not supported by firmware, clk_id=%u (%d)\n",
+			 __func__, info->pvtpll_clk_id, (int)res.a0);
 
 	return 0;
 }

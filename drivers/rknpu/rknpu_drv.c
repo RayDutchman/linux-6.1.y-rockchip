@@ -1517,7 +1517,8 @@ static int rknpu_probe(struct platform_device *pdev)
 			if (ret != 0)
 				goto err_remove_wq;
 		} else {
-			LOG_DEV_WARN(dev, "could not find sram resource!\n");
+			/* RK3588 无 NPU SRAM（RV1103/1106 系列特性）, dts 未配置属正常 */
+			LOG_DEV_INFO(dev, "optional sram resource not configured\n");
 		}
 	}
 
