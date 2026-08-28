@@ -404,19 +404,26 @@
 	status = "okay";
 };
 
-/* WiFi 电源使能脚，原由 vendor wlan-platdata 拉高，现改 gpio-hog 常供 */
-&gpio3 {
-	wifi-pwr-hog {
-		gpio-hog;
-		gpios = <RK_PC7 GPIO_ACTIVE_HIGH>;
-		output-high;
-		line-name = "wifi-poweren";
+/* WiFi 电源使能脚 (WL_REG_ON): regulator-fixed 挂给 pcie2x1l0,
+ * PCIe 驱动 probe 时上电 / shutdown 时断电 → 每次重启芯片获得完整
+ * 断电-上电循环, 修复热重启 WiFi 卡死 (backplane type 15) */
+/ {
+	vcc3v3_wifi: vcc3v3-wifi {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_wifi";
+		enable-active-high;
+		regulator-boot-on;
+		gpio = <&gpio3 RK_PC7 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_poweren>;
+		startup-delay-us = <200000>;
 	};
 };
 
 &pcie2x1l0 {
 	reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
 	rockchip,skip-scan-in-resume;
+	vpcie3v3-supply = <&vcc3v3_wifi>;
 	status = "okay";
 };
 
