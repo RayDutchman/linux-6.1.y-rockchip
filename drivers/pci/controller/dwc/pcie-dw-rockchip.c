@@ -1885,6 +1885,9 @@ static void rk_pcie_shutdown(struct platform_device *pdev)
 	rk_pcie_bus_set_current_state(rk_pcie->pci->pp.bridge->bus, PCI_D3cold);
 	rk_pcie_disable_ltssm(rk_pcie);
 	rk_pcie_writel_apb(rk_pcie, PCIE_CLIENT_INTR_MASK, 0xffffffff);
+	/* ehang-box: 断电 vpcie3v3 (WiFi WL_REG_ON). AP6275P 热重启不复位会卡死
+	 * (backplane type 15), 关机断电+开机上电沿 = 等效冷断电 */
+	rk_pcie_disable_power(rk_pcie);
 }
 
 #ifdef CONFIG_PCIEASPM
