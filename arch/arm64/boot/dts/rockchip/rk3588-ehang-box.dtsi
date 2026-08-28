@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Copyright (c) 2021 Rockchip Electronics Co., Ltd.
  *
@@ -460,9 +460,18 @@
 
 
 &i2c0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&i2c0m2_xfer_pullup>;
+	status = "disabled";
+};
+
+/* 大核电源芯片的 I2C 在硬件上 SCL/SDA 交叉（SDA 接 GPIO0_D1，SCL 接 GPIO0_D2），
+ * 硬件 I2C 控制器无法交换 SCL/SDA，改用 i2c-gpio 软 I2C 反着映射。 */
+i2c_cpu_big: i2c-gpio {
+	compatible = "i2c-gpio";
+	sda-gpios = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;
+	scl-gpios = <&gpio0 RK_PD2 GPIO_ACTIVE_HIGH>;
+	i2c-gpio,delay-us = <2>;
+	#address-cells = <1>;
+	#size-cells = <0>;
 
 	vdd_cpu_big0_s0: vdd_cpu_big0_mem_s0: rk8602@42 {
 		compatible = "rockchip,rk8602";
@@ -1080,17 +1089,4 @@
 	mali-supply = <&vdd_gpu_s0>;
 	sram-supply = <&vdd_gpu_mem_s0>;
 	status = "okay";
-};
-
-&pinctrl {
-	i2c0 {
-		/omit-if-no-ref/
-		i2c0m2_xfer_pullup: i2c0m2-xfer-pullup {
-			rockchip,pins =
-				/* i2c0_scl_m2 */
-				<0 RK_PD1 3 &pcfg_pull_up_smt>,
-				/* i2c0_sda_m2 */
-				<0 RK_PD2 3 &pcfg_pull_up_smt>;
-		};
-	};
 };
