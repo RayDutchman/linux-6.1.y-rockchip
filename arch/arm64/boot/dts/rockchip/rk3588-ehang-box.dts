@@ -11,6 +11,6 @@
 #include "rk3588-linux.dtsi"
 
 / {
-	model = "Rockchip RK3588 EHANG BOX Board";
+	model = "Rockchip RK3588 EHANG BOX";
 	compatible = "rockchip,rk3588-ehang-box", "rockchip,rk3588";
 };
