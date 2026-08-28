@@ -332,8 +332,8 @@
 	 * 硬件 I2C 控制器无法交换 SCL/SDA，改用 i2c-gpio 软 I2C 反着映射。 */
 	i2c_cpu_big: i2c-gpio {
 		compatible = "i2c-gpio";
-		sda-gpios = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;
-		scl-gpios = <&gpio0 RK_PD2 GPIO_ACTIVE_HIGH>;
+		sda-gpios = <&gpio0 RK_PD1 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&gpio0 RK_PD2 (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
 		i2c-gpio,delay-us = <2>;
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -1123,4 +1123,25 @@
 /* SoC watchdog, 原厂 dtsi 默认 disabled */
 &wdt {
 	status = "okay";
+};
+
+/* ===== evb.dtsi 残留清理 (本板无此硬件/机制) ===== */
+
+/* EVB 的 pcie2x1l0, 本板未布线, 禁用消 probe 报错 */
+&pcie2x1l0 {
+	status = "disabled";
+};
+
+/* vendor uboot 的 drm-logo 机制残留: 主线内核/uboot 不填充该内存区,
+ * size=0 的 reserved-memory 每次启动报 failed to reserve */
+/ {
+	reserved-memory {
+		/delete-node/ drm-logo@0;
+		/delete-node/ drm-cubic-lut@0;
+	};
+};
+
+&display_subsystem {
+	/delete-property/ memory-region;
+	/delete-property/ memory-region-names;
 };
