@@ -1127,10 +1127,8 @@
 
 /* ===== evb.dtsi 残留清理 (本板无此硬件/机制) ===== */
 
-/* EVB 的 pcie2x1l0, 本板未布线, 禁用消 probe 报错 */
-&pcie2x1l0 {
-	status = "disabled";
-};
+/* EVB 的 pcie2x1l0 误禁用过一次 (以为未布线, 实为 AP6275P WiFi 所在控制器,
+ * brcmfmac 0002:21:00.0 挂它下面, 禁用 = WiFi 彻底消失). 保持 okay, 勿动! */
 
 /* vendor uboot 的 drm-logo 机制残留: 主线内核/uboot 不填充该内存区,
  * size=0 的 reserved-memory 每次启动报 failed to reserve */
