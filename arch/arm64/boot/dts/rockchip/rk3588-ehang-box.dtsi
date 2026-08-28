@@ -311,16 +311,17 @@
 		wakeup-source;
 	};
 */
+	/* AP6275P (BCM43752 PCIe) 改用主线 brcmfmac 驱动，
+	 * 弃用 vendor wlan-platdata/bcmdhd 节点（其固件路径为 Android 专用，Armbian 下必然加载失败）
 	wireless_wlan: wireless-wlan {
 		compatible = "wlan-platdata";
 		wifi_chip_type = "ap6275p";
 		pinctrl-names = "default";
-		//pinctrl-0 = <&wifi_host_wake_irq>, <&wifi_poweren_gpio>;
 		pinctrl-0 = <&wifi_poweren_gpio>;
-		//WIFI,host_wake_irq = <&gpio0 RK_PB2 GPIO_ACTIVE_HIGH>;
 		WIFI,poweren_gpio = <&gpio3 RK_PC7 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
+	 */
 
 	/* 大核电源芯片的 I2C 在硬件上 SCL/SDA 交叉（SDA 接 GPIO0_D1，SCL 接 GPIO0_D2），
 	 * 硬件 I2C 控制器无法交换 SCL/SDA，改用 i2c-gpio 软 I2C 反着映射。 */
@@ -385,6 +386,16 @@
 /* ap6275 : wifi */
 &combphy1_ps {
 	status = "okay";
+};
+
+/* WiFi 电源使能脚，原由 vendor wlan-platdata 拉高，现改 gpio-hog 常供 */
+&gpio3 {
+	wifi-pwr-hog {
+		gpio-hog;
+		gpios = <RK_PC7 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "wifi-poweren";
+	};
 };
 
 &pcie2x1l0 {
