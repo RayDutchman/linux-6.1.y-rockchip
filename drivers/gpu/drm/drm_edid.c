@@ -6329,16 +6329,24 @@ static int add_displayid_detailed_1_modes(struct drm_connector *connector,
 		return 0;
 
 	num_timings = block->num_bytes / 20;
+	pr_info("EHANG_DISPLAYID: add_displayid_detailed_1_modes tag=0x%02x type_7=%d num_bytes=%d num_timings=%d conn=%s\n",
+		block->tag, type_7, block->num_bytes, num_timings, connector->name);
 	for (i = 0; i < num_timings; i++) {
 		struct displayid_detailed_timings_1 *timings = &det->timings[i];
 
 		newmode = drm_mode_displayid_detailed(connector->dev, timings, type_7);
-		if (!newmode)
+		if (!newmode) {
+			pr_info("EHANG_DISPLAYID:   timing[%d] drm_mode_displayid_detailed returned NULL\n", i);
 			continue;
+		}
+		pr_info("EHANG_DISPLAYID:   timing[%d] clock=%d hdisplay=%d vdisplay=%d vtotal=%d name=%s\n",
+			i, newmode->clock, newmode->hdisplay, newmode->vdisplay, newmode->vtotal, newmode->name);
 
 		drm_mode_probed_add(connector, newmode);
 		num_modes++;
 	}
+	pr_info("EHANG_DISPLAYID: add_displayid_detailed_1_modes done num_modes=%d conn=%s\n",
+		num_modes, connector->name);
 	return num_modes;
 }
 
@@ -6351,11 +6359,15 @@ static int add_displayid_detailed_modes(struct drm_connector *connector,
 
 	displayid_iter_edid_begin(drm_edid, &iter);
 	displayid_iter_for_each(block, &iter) {
+		pr_info("EHANG_DISPLAYID: add_displayid_detailed_modes saw tag=0x%02x num_bytes=%d conn=%s\n",
+			block->tag, block->num_bytes, connector->name);
 		if (block->tag == DATA_BLOCK_TYPE_1_DETAILED_TIMING ||
 		    block->tag == DATA_BLOCK_2_TYPE_7_DETAILED_TIMING)
 			num_modes += add_displayid_detailed_1_modes(connector, block);
 	}
 	displayid_iter_end(&iter);
+	pr_info("EHANG_DISPLAYID: add_displayid_detailed_modes TOTAL num_modes=%d conn=%s\n",
+		num_modes, connector->name);
 
 	return num_modes;
 }
