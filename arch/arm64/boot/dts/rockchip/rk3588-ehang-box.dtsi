@@ -1118,13 +1118,13 @@
 };
 
 &gpu {
-	status = "disabled";
-};
-
-&gpu_panthor {
 	mali-supply = <&vdd_gpu_s0>;
 	sram-supply = <&vdd_gpu_mem_s0>;
 	status = "okay";
+};
+
+&gpu_panthor {
+	status = "disabled";
 };
 
 /* SoC watchdog, 原厂 dtsi 默认 disabled */
