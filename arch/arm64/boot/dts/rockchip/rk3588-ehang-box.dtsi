@@ -93,20 +93,16 @@
 
 
 /*
+ * 风扇 PWM 线接 GPIO4_B5 = PWM12_M1（原理图确认，sense 未接）。
+ * 注意：必须用主线 cooling-maps 绑定，rockchip,temp-trips 是厂商私有绑定，
+ * 主线 6.1 pwm-fan 驱动不认。
+ */
 	fan: pwm-fan {
 		compatible = "pwm-fan";
 		#cooling-cells = <2>;
-		pwms = <&pwm3 0 50000 0>;
-		cooling-levels = <0 50 100 150 200 255>;
-		rockchip,temp-trips = <
-			50000	1
-			55000	2
-			60000	3
-			65000	4
-			70000	5
-		>;
+		pwms = <&pwm12 0 50000 0>;
+		cooling-levels = <0 64 128 192 255>;
 	};
-*/
 
 	hdmiin-sound {
 		compatible = "rockchip,hdmi";
@@ -883,12 +879,41 @@
 };
 */
 
-/*
-&pwm3 {
-	pinctrl-0 = <&pwm3m1_pins>;
+/* 风扇 PWM：GPIO4_B5 = pwm12_m1（原理图确认） */
+&pwm12 {
+	pinctrl-0 = <&pwm12m1_pins>;
 	status = "okay";
 };
-*/
+
+/* 风扇调速：55°C 起转低档，70°C 高档（新增 fan 专用 trip，
+ * 不能复用 threshold/target —— 那俩同时挂在 cpufreq 降频 map 上，改了会连带改降频策略）
+ * 注意：本 dtsi 开头 / { 根节点到下方才闭合，label 引用必须放在根节点外 */
+&soc_thermal {
+	trips {
+		fan_low: trip-point-fan-low {
+			temperature = <55000>;
+			hysteresis = <2000>;
+			type = "passive";
+		};
+		fan_high: trip-point-fan-high {
+			temperature = <70000>;
+			hysteresis = <2000>;
+			type = "passive";
+		};
+	};
+	cooling-maps {
+		map4 {
+			trip = <&fan_low>;
+			cooling-device = <&fan 1 2>;
+			contribution = <1024>;
+		};
+		map5 {
+			trip = <&fan_high>;
+			cooling-device = <&fan 3 4>;
+			contribution = <1024>;
+		};
+	};
+};
 
 /*
 &sata0 {
@@ -1118,13 +1143,13 @@
 };
 
 &gpu {
-	mali-supply = <&vdd_gpu_s0>;
-	sram-supply = <&vdd_gpu_mem_s0>;
-	status = "okay";
+	status = "disabled";
 };
 
 &gpu_panthor {
-	status = "disabled";
+	mali-supply = <&vdd_gpu_s0>;
+	sram-supply = <&vdd_gpu_mem_s0>;
+	status = "okay";
 };
 
 /* SoC watchdog, 原厂 dtsi 默认 disabled */
