@@ -45,6 +45,7 @@
 #include <media/v4l2-event.h>
 #include <media/v4l2-fh.h>
 #include <media/v4l2-ioctl.h>
+#include <media/videobuf2-core.h>
 #include <media/videobuf2-dma-contig.h>
 #include <media/videobuf2-v4l2.h>
 #include <soc/rockchip/rockchip-system-status.h>
@@ -201,6 +202,8 @@ struct hdmirx_stream {
 	u32 frame_idx;
 	u32 line_flag_int_cnt;
 	u32 irq_stat;
+	/* 失锁时合成黑帧的节流时间戳(见 hdmirx_synthesize_frame) */
+	unsigned long last_synth_jiffies;
 };
 
 struct hdmirx_fence {
@@ -3178,6 +3181,51 @@ static void hdmirx_vb_done(struct hdmirx_stream *stream,
 	v4l2_dbg(4, debug, v4l2_dev, "vb_done fd:%d", vb_done->vb2_buf.planes[0].m.fd);
 }
 
+/*
+ * hdmirx_synthesize_frame: 源端失锁(信号抖动/切换)期间, DMA 采不到真实帧。
+ * 为让 ffmpeg 的 DQBUF 持续有 buffer 可取(推流不断), 这里把排队中的
+ * QUEUED buffer 清零(黑帧)后标记 DONE, 模拟一帧供给 userspace。
+ * 由线程化 DMA 中断调用(进程上下文, 可安全调 vb2_buffer_done), 按帧率节流。
+ * 信号恢复(hdmirx_format_change)后自动切回真实采集。
+ */
+static void hdmirx_synthesize_frame(struct hdmirx_stream *stream)
+{
+	struct hdmirx_buffer *buf;
+	struct vb2_v4l2_buffer *vb;
+	unsigned long lock_flags = 0;
+	unsigned long delta;
+	const struct hdmirx_output_fmt *fmt = stream->out_fmt;
+	struct rk_hdmirx_dev *hdmirx_dev = stream->hdmirx_dev;
+	struct v4l2_device *v4l2_dev = &hdmirx_dev->v4l2_dev;
+
+	/* 按标称帧率节流: 失锁期间也别瞬发掏空排队 buffer */
+	delta = msecs_to_jiffies(1000 / (hdmirx_dev->fps ?: 30));
+	if (time_is_after_jiffies(stream->last_synth_jiffies + delta))
+		return;
+
+	spin_lock_irqsave(&stream->vbq_lock, lock_flags);
+	if (list_empty(&stream->buf_head)) {
+		spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
+		return;
+	}
+	buf = list_first_entry(&stream->buf_head, struct hdmirx_buffer, queue);
+	list_del(&buf->queue);
+	spin_unlock_irqrestore(&stream->vbq_lock, lock_flags);
+
+	vb = &buf->vb;
+	/* 清零 = 黑帧(按 mplanes 填平面)。DMA-contig 的 buff_addr 是物理地址,
+	 * 内核侧访问必须用 vb2 提供的 CPU 虚拟地址, 不能直接对 phys addr memset。 */
+	for (u32 i = 0; i < fmt->mplanes; i++) {
+		void *vaddr = vb2_plane_vaddr(&vb->vb2_buf, i);
+		if (vaddr)
+			memset(vaddr, 0, stream->pixm.plane_fmt[i].sizeimage);
+	}
+
+	stream->last_synth_jiffies = jiffies;
+	hdmirx_vb_done(stream, vb);
+	v4l2_dbg(2, debug, v4l2_dev, "%s: signal lost, synth black frame\n", __func__);
+}
+
 static void dma_idle_int_handler(struct rk_hdmirx_dev *hdmirx_dev, bool *handled)
 {
 	unsigned long lock_flags = 0;
@@ -3186,6 +3234,13 @@ static void dma_idle_int_handler(struct rk_hdmirx_dev *hdmirx_dev, bool *handled
 	struct v4l2_dv_timings timings = hdmirx_dev->timings;
 	struct v4l2_bt_timings *bt = &timings.bt;
 	struct vb2_v4l2_buffer *vb_done = NULL;
+
+	/* 源端失锁: DMA 无真实帧可采, 降级为持续合成黑帧, 保推流不断 */
+	if (!hdmirx_dev->get_timing && !stream->stopping) {
+		hdmirx_synthesize_frame(stream);
+		*handled = true;
+		return;
+	}
 
 	if (!(stream->irq_stat) && !(stream->irq_stat & LINE_FLAG_INT_EN))
 		v4l2_dbg(1, debug, v4l2_dev,
