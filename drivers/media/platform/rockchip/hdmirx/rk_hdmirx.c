@@ -3002,9 +3002,14 @@ static void mainunit_0_int_handler(struct rk_hdmirx_dev *hdmirx_dev,
 		*handled = true;
 	}
 
+	/*
+	 * TMDSQPCLK_LOCKED_CHG 是"TMDS 时钟重新锁定"的正向事件, 不是信号丢失。
+	 * 源端切换时它和 OFF_CHG 会先后出现: OFF 触发重建, LOCKED 只是宣告恢复。
+	 * 再在 LOCKED 上调用 process_signal_change 会把已经恢复的流又停掉,
+	 * 反复停流→重建→再停, 放大了抖动。这里只清中断、不触发停流重建。
+	 */
 	if (status & TMDSQPCLK_LOCKED_CHG) {
-		process_signal_change(hdmirx_dev);
-		v4l2_dbg(2, debug, v4l2_dev, "%s: TMDSQPCLK_LOCKED_CHG\n", __func__);
+		v4l2_dbg(2, debug, v4l2_dev, "%s: TMDSQPCLK_LOCKED_CHG (no re-change)\n", __func__);
 		*handled = true;
 	}
 
@@ -3032,9 +3037,15 @@ static void mainunit_2_int_handler(struct rk_hdmirx_dev *hdmirx_dev,
 		*handled = true;
 	}
 
+	/*
+	 * TMDSVALID_STABLE_CHG 是"TMDS 有效且稳定"的正向事件, 不是信号丢失。
+	 * 实测(MPC 切全屏)中它触发时信号其实稳稳保持(mu2_st=0x400), 却因此
+	 * 走了一次完整停流重建, 造成 1.8s 断流。源端切换时真正需要重建的是
+	 * TMDSQPCLK_OFF_CHG 这类"时钟关断"的负向事件; STABLE 只是宣告信号
+	 * 已经稳定下来, 触发重建反而把刚恢复的流打断。这里不触发 stop/rebuild。
+	 */
 	if (status & TMDSVALID_STABLE_CHG) {
-		process_signal_change(hdmirx_dev);
-		v4l2_dbg(2, debug, v4l2_dev, "%s: TMDSVALID_STABLE_CHG\n", __func__);
+		v4l2_dbg(2, debug, v4l2_dev, "%s: TMDSVALID_STABLE_CHG (no re-change)\n", __func__);
 		*handled = true;
 	}
 
