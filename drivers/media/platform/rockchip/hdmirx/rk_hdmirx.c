@@ -73,6 +73,10 @@ MODULE_PARM_DESC(low_latency, "low_latency en(0-1)");
 #define MEMORY_ALIGN_ROUND_UP_BYTES	64
 #define HDMIRX_PLANE_Y			0
 #define HDMIRX_PLANE_CBCR		1
+/* 源端切换(MPC 全屏/窗口)会触发 HDMI 失锁重训练, 实测可达 ~8s。
+ * DQBUF 在失锁期间挂起等待重锁而不是立即 EINVAL, 让 ffmpeg 不退出、
+ * RTSP 会话不断; 超过该上限仍未锁(真拔线)再 EINVAL 交由启动脚本兜底。 */
+#define HDMIRX_DQBUF_SIGNAL_WAIT_MS	15000
 #define INIT_FIFO_STATE			128
 #define RK_IRQ_HDMIRX_HDMI		210
 #define FILTER_FRAME_CNT		6
@@ -2662,12 +2666,14 @@ static int hdmirx_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 		/* 非阻塞 fd 不等待, 维持原语义立即返回 */
 		if (file->f_flags & O_NONBLOCK)
 			return -EINVAL;
-		/* 信号短暂抖动(源端切换等)时等待后台重锁, 避免立即 EINVAL
-		 * 干掉 userspace 导致推流中断; 超时无信号再维持原语义, 由脚本兜底 */
+		/* 信号短暂抖动(源端切换等)时挂起等待后台重锁, 避免立即 EINVAL
+		 * 干掉 userspace 导致推流中断; 期间 vb2 流保持, 信号恢复由
+		 * hdmirx_format_change 唤醒。超过 HDMIRX_DQBUF_SIGNAL_WAIT_MS
+		 * 仍无信号(真拔线)则维持原语义 EINVAL, 交由启动脚本兜底重启。 */
 		ret = wait_event_interruptible_timeout(
 				hdmirx_dev->dqbuf_wait,
 				hdmirx_dev->get_timing,
-				msecs_to_jiffies(2000));
+				msecs_to_jiffies(HDMIRX_DQBUF_SIGNAL_WAIT_MS));
 		if (ret == 0)
 			return -EINVAL;
 		if (ret < 0)
