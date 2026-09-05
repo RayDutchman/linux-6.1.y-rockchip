@@ -264,6 +264,7 @@ struct rk_hdmirx_dev {
 	bool initialized;
 	bool freq_qos_add;
 	bool get_timing;
+	wait_queue_head_t dqbuf_wait; /* 信号抖动时 DQBUF 阻塞等待唤醒 */
 	bool cec_enable;
 	bool hpd_on;
 	bool force_off;
@@ -1757,6 +1758,7 @@ static void hdmirx_format_change(struct rk_hdmirx_dev *hdmirx_dev)
 	}
 
 	hdmirx_dev->get_timing = true;
+	wake_up_all(&hdmirx_dev->dqbuf_wait);
 	v4l2_dbg(1, debug, v4l2_dev, "%s: queue res_chg_event\n", __func__);
 	v4l2_event_queue(&stream->vdev, &ev_src_chg);
 }
@@ -2656,8 +2658,21 @@ static int hdmirx_dqbuf(struct file *file, void *priv, struct v4l2_buffer *p)
 	struct hdmirx_stream *stream = video_drvdata(file);
 	struct rk_hdmirx_dev *hdmirx_dev = stream->hdmirx_dev;
 
-	if (!hdmirx_dev->get_timing)
-		return -EINVAL;
+	if (!hdmirx_dev->get_timing) {
+		/* 非阻塞 fd 不等待, 维持原语义立即返回 */
+		if (file->f_flags & O_NONBLOCK)
+			return -EINVAL;
+		/* 信号短暂抖动(源端切换等)时等待后台重锁, 避免立即 EINVAL
+		 * 干掉 userspace 导致推流中断; 超时无信号再维持原语义, 由脚本兜底 */
+		ret = wait_event_interruptible_timeout(
+				hdmirx_dev->dqbuf_wait,
+				hdmirx_dev->get_timing,
+				msecs_to_jiffies(2000));
+		if (ret == 0)
+			return -EINVAL;
+		if (ret < 0)
+			return ret;
+	}
 
 	ret = vb2_ioctl_dqbuf(file, priv, p);
 	hdmirx_dqbuf_get_done_fence(hdmirx_dev);
@@ -5068,6 +5083,7 @@ static int hdmirx_probe(struct platform_device *pdev)
 
 	mutex_init(&hdmirx_dev->stream_lock);
 	mutex_init(&hdmirx_dev->work_lock);
+	init_waitqueue_head(&hdmirx_dev->dqbuf_wait);
 	spin_lock_init(&hdmirx_dev->rst_lock);
 	spin_lock_init(&hdmirx_dev->fence_lock);
 	INIT_LIST_HEAD(&hdmirx_dev->qbuf_fence_list_head);
