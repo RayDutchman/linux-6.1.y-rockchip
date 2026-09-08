@@ -2606,6 +2606,25 @@ static int rockchip_pwm_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	/*
+	 * Force PWM to 0% duty on probe.
+	 * Without this, a soft reboot (reboot command) preserves the PWM
+	 * hardware registers from the previous boot.  If the fan was at
+	 * 100% duty, it stays at 100% after reboot — the pwm-fan driver
+	 * registers a cooling device but never re-configures the hardware.
+	 * A full power-cycle clears the registers, so the bug only appears
+	 * on soft reboot.
+	 */
+	if (enabled) {
+		struct pwm_state state = {};
+
+		pwm_get_state(&pc->chip.pwms[0], &state);
+		state.duty_cycle = 0;
+		state.enabled = PWM_STATE_DISABLED;
+		pwm_apply_state(&pc->chip.pwms[0], &state);
+		dev_info(&pdev->dev, "forced PWM off on probe (reboot state cleared)\n");
+	}
+
 	if (pc->wave_support) {
 		if (!pc->clk_osc) {
 			dev_err(&pdev->dev, "Can't find OSC clk for wave generator mode\n");
