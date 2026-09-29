@@ -2620,7 +2620,7 @@ static int rockchip_pwm_probe(struct platform_device *pdev)
 
 		pwm_get_state(&pc->chip.pwms[0], &state);
 		state.duty_cycle = 0;
-		state.enabled = PWM_STATE_DISABLED;
+		state.enabled = false;
 		pwm_apply_state(&pc->chip.pwms[0], &state);
 		dev_info(&pdev->dev, "forced PWM off on probe (reboot state cleared)\n");
 	}
